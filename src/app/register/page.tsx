@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { register } from '@/app/auth/actions'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react'
 
 export default function RegisterPage() {
@@ -34,10 +35,13 @@ export default function RegisterPage() {
 
                 <div className="relative z-10">
                     <Link href="/" className="flex items-center gap-2 mb-12">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                            C
-                        </div>
-                        <span className="text-xl font-bold tracking-tight">Cost Analyst</span>
+                        <Image
+                            src="/cost analyst.webp"
+                            alt="Cost Analyst Logo"
+                            width={140}
+                            height={40}
+                            className="h-8 w-auto brightness-0 invert"
+                        />
                     </Link>
 
                     <h2 className="text-4xl font-bold mb-6 leading-tight">

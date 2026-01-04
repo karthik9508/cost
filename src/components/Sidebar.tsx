@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
     LayoutDashboard,
@@ -40,12 +41,22 @@ export default function Sidebar() {
             <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
                 <Link href="/" className="flex items-center gap-2">
                     {!collapsed && (
-                        <h1 className="text-xl font-bold text-gray-800">
-                            Cost <span className="text-blue-600">Analyst</span>
-                        </h1>
+                        <Image
+                            src="/cost analyst.webp"
+                            alt="Cost Analyst Logo"
+                            width={120}
+                            height={32}
+                            className="h-7 w-auto"
+                        />
                     )}
                     {collapsed && (
-                        <span className="text-2xl font-bold text-blue-600">C</span>
+                        <Image
+                            src="/cost analyst.webp"
+                            alt="Cost Analyst"
+                            width={32}
+                            height={32}
+                            className="h-8 w-8 object-contain"
+                        />
                     )}
                 </Link>
                 <button
