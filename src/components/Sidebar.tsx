@@ -38,14 +38,16 @@ export default function Sidebar() {
         >
             {/* Logo / Brand */}
             <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-                {!collapsed && (
-                    <h1 className="text-xl font-bold text-gray-800">
-                        Cost<span className="text-blue-600">App</span>
-                    </h1>
-                )}
-                {collapsed && (
-                    <span className="text-2xl font-bold text-blue-600 mx-auto">C</span>
-                )}
+                <Link href="/" className="flex items-center gap-2">
+                    {!collapsed && (
+                        <h1 className="text-xl font-bold text-gray-800">
+                            Cost <span className="text-blue-600">Analyst</span>
+                        </h1>
+                    )}
+                    {collapsed && (
+                        <span className="text-2xl font-bold text-blue-600">C</span>
+                    )}
+                </Link>
                 <button
                     onClick={() => setCollapsed(!collapsed)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"

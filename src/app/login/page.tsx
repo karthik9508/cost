@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { login } from '@/app/auth/actions'
 import Link from 'next/link'
+import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
 export default function LoginPage() {
     const [error, setError] = useState<string | null>(null)
@@ -19,73 +20,125 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
-                <div className="text-center">
-                    <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
-                    <p className="mt-2 text-gray-300">Sign in to your account</p>
+        <div className="min-h-screen flex bg-slate-50">
+            {/* Left Side - Visuals */}
+            <div className="hidden lg:flex lg:w-1/2 bg-blue-600 text-white p-12 flex-col justify-between relative overflow-hidden">
+                {/* Background Patterns */}
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-800 z-0" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
+                <div className="relative z-10">
+                    <Link href="/" className="flex items-center gap-2 mb-12">
+                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold text-lg">
+                            C
+                        </div>
+                        <span className="text-xl font-bold tracking-tight">Cost Analyst</span>
+                    </Link>
+
+                    <h2 className="text-4xl font-bold mb-6 leading-tight">
+                        Take control of your <br />
+                        manufacturing costs.
+                    </h2>
+                    <p className="text-blue-100 text-lg max-w-md leading-relaxed">
+                        Join thousands of businesses making smarter pricing decisions and boosting profitability with Cost Analyst.
+                    </p>
                 </div>
 
-                {error && (
-                    <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
-                        {error}
-                    </div>
-                )}
+                <div className="relative z-10 space-y-4">
+                    {[
+                        "Real-time cost tracking",
+                        "Smart pricing models",
+                        "Break-even analysis",
+                        "Automated reporting"
+                    ].map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-3 text-blue-50">
+                            <CheckCircle2 size={20} className="text-blue-300" />
+                            <span>{item}</span>
+                        </div>
+                    ))}
+                </div>
 
-                <form action={handleSubmit} className="space-y-5">
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
-                            Email Address
-                        </label>
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            required
-                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                            placeholder="you@example.com"
-                        />
-                    </div>
+                <div className="relative z-10 mt-12 text-sm text-blue-200">
+                    © 2024 Cost Analyst Inc. All rights reserved.
+                </div>
+            </div>
 
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-2">
-                            Password
-                        </label>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                            placeholder="••••••••"
-                        />
+            {/* Right Side - Form */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-24 relative">
+                <div className="w-full max-w-md space-y-8 animate-fade-in-up">
+                    <div className="text-center lg:text-left">
+                        <h1 className="text-3xl font-bold text-slate-900">Welcome back</h1>
+                        <p className="mt-2 text-slate-500">Please enter your details to sign in.</p>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? (
-                            <span className="flex items-center justify-center gap-2">
-                                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                                Signing in...
-                            </span>
-                        ) : (
-                            'Sign In'
-                        )}
-                    </button>
-                </form>
+                    {error && (
+                        <div className="p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm flex items-start gap-2">
+                            <div className="mt-0.5">⚠️</div>
+                            {error}
+                        </div>
+                    )}
 
-                <p className="text-center text-gray-300">
-                    Don&apos;t have an account?{' '}
-                    <Link href="/register" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
-                        Sign up
-                    </Link>
-                </p>
+                    <form action={handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                                Email Address
+                            </label>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                required
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                                placeholder="name@company.com"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                                    Password
+                                </label>
+                                <Link href="#" className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                                    Forgot password?
+                                </Link>
+                            </div>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                required
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                                placeholder="••••••••"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Signing in...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Sign In</span>
+                                    <ArrowRight size={18} />
+                                </>
+                            )}
+                        </button>
+                    </form>
+
+                    <p className="text-center text-slate-500 text-sm">
+                        Don&apos;t have an account?{' '}
+                        <Link href="/register" className="text-blue-600 hover:text-blue-700 font-bold transition-colors">
+                            Sign up for free
+                        </Link>
+                    </p>
+                </div>
             </div>
         </div>
     )

@@ -103,7 +103,7 @@ export default function DashboardPage() {
                     <h1 className="text-xl lg:text-2xl font-bold text-slate-800">
                         Welcome, {userName}
                     </h1>
-                    <p className="text-slate-500 text-sm">
+                    <p className="text-slate-500 text-sm" suppressHydrationWarning>
                         {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                     </p>
                 </div>

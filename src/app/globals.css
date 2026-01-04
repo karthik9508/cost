@@ -1,5 +1,52 @@
 @import "tailwindcss";
 
+@layer utilities {
+  .animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-up-delay-100 {
+    animation: fadeInUp 0.8s ease-out 0.1s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-up-delay-200 {
+    animation: fadeInUp 0.8s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
 :root {
   --background: #f9fafb;
   --foreground: #111827;
@@ -51,10 +98,16 @@ body {
 }
 
 /* Remove transition from elements where it might cause issues */
-button, input, textarea, select {
+button,
+input,
+textarea,
+select {
   transition-duration: 0ms;
 }
 
-button:hover, input:focus, textarea:focus, select:focus {
+button:hover,
+input:focus,
+textarea:focus,
+select:focus {
   transition-duration: 150ms;
 }
