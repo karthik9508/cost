@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 
 export async function login(formData: FormData) {
@@ -33,11 +34,19 @@ export async function register(formData: FormData) {
         return { error: 'Passwords do not match' }
     }
 
+    let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    if (!siteUrl) {
+        const headersList = await headers()
+        const host = headersList.get('host')
+        const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
+        siteUrl = `${protocol}://${host}`
+    }
+
     const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+            emailRedirectTo: `${siteUrl}/auth/callback`,
         },
     })
 
@@ -59,7 +68,14 @@ export async function logout() {
 export async function signInWithGoogle() {
     const supabase = await createClient()
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+
+    if (!siteUrl) {
+        const headersList = await headers()
+        const host = headersList.get('host')
+        const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
+        siteUrl = `${protocol}://${host}`
+    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
