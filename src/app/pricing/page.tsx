@@ -45,6 +45,8 @@ export default function PricingPage() {
     const [costPerUnit, setCostPerUnit] = useState<number>(0)
     const [markupPercentage, setMarkupPercentage] = useState<string>('25')
     const [profitMargin, setProfitMargin] = useState<string>('20')
+    const [profitAmount, setProfitAmount] = useState<string>('')
+    const [profitInputMode, setProfitInputMode] = useState<'percentage' | 'amount'>('percentage')
     const [competitorPrice, setCompetitorPrice] = useState<string>('')
     const [notes, setNotes] = useState<string>('')
 
@@ -86,12 +88,29 @@ export default function PricingPage() {
             const markup = parseFloat(markupPercentage) || 0
             return costPerUnit * (1 + markup / 100)
         } else if (pricingMethod === 'desired_profit') {
-            const margin = parseFloat(profitMargin) || 0
-            if (margin >= 100) return costPerUnit * 10 // Cap at 10x
-            return costPerUnit / (1 - margin / 100)
+            if (profitInputMode === 'amount') {
+                // Amount-based: Selling Price = Cost + Profit Amount
+                const profitAmt = parseFloat(profitAmount) || 0
+                return costPerUnit + profitAmt
+            } else {
+                // Percentage-based: Selling Price = Cost / (1 - Margin%)
+                const margin = parseFloat(profitMargin) || 0
+                if (margin >= 100) return costPerUnit * 10 // Cap at 10x
+                return costPerUnit / (1 - margin / 100)
+            }
         } else {
             return parseFloat(competitorPrice) || 0
         }
+    }
+
+    // Calculate the margin percentage when using amount mode
+    const calculatedMarginFromAmount = (): number => {
+        const profitAmt = parseFloat(profitAmount) || 0
+        const sellingPriceFromAmount = costPerUnit + profitAmt
+        if (sellingPriceFromAmount > 0) {
+            return (profitAmt / sellingPriceFromAmount) * 100
+        }
+        return 0
     }
 
     const sellingPrice = calculateSellingPrice()
@@ -241,8 +260,8 @@ export default function PricingPage() {
                                             type="button"
                                             onClick={() => setPricingMethod('cost_plus')}
                                             className={`p-3 rounded-lg border-2 text-center transition-all ${pricingMethod === 'cost_plus'
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                         >
                                             <TrendingUp className="w-5 h-5 mx-auto mb-1" />
@@ -252,8 +271,8 @@ export default function PricingPage() {
                                             type="button"
                                             onClick={() => setPricingMethod('desired_profit')}
                                             className={`p-3 rounded-lg border-2 text-center transition-all ${pricingMethod === 'desired_profit'
-                                                    ? 'border-green-500 bg-green-50 text-green-700'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-green-500 bg-green-50 text-green-700'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                         >
                                             <Target className="w-5 h-5 mx-auto mb-1" />
@@ -263,8 +282,8 @@ export default function PricingPage() {
                                             type="button"
                                             onClick={() => setPricingMethod('market_basis')}
                                             className={`p-3 rounded-lg border-2 text-center transition-all ${pricingMethod === 'market_basis'
-                                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                         >
                                             <BarChart3 className="w-5 h-5 mx-auto mb-1" />
@@ -295,21 +314,74 @@ export default function PricingPage() {
 
                                 {pricingMethod === 'desired_profit' && (
                                     <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                                        <label className="block text-sm font-medium text-green-800 mb-2">
-                                            Desired Profit Margin (%)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            min="0"
-                                            max="99"
-                                            value={profitMargin}
-                                            onChange={(e) => setProfitMargin(e.target.value)}
-                                            className="w-full px-3 py-2 border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        />
-                                        <p className="text-xs text-green-600 mt-2">
-                                            Formula: Cost ÷ (1 - {profitMargin}%) = Selling Price
-                                        </p>
+                                        {/* Toggle between Percentage and Amount */}
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setProfitInputMode('percentage')}
+                                                className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${profitInputMode === 'percentage'
+                                                        ? 'bg-green-600 text-white'
+                                                        : 'bg-white text-green-700 border border-green-300 hover:bg-green-100'
+                                                    }`}
+                                            >
+                                                By Percentage
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setProfitInputMode('amount')}
+                                                className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${profitInputMode === 'amount'
+                                                        ? 'bg-green-600 text-white'
+                                                        : 'bg-white text-green-700 border border-green-300 hover:bg-green-100'
+                                                    }`}
+                                            >
+                                                By Amount
+                                            </button>
+                                        </div>
+
+                                        {profitInputMode === 'percentage' ? (
+                                            <>
+                                                <label className="block text-sm font-medium text-green-800 mb-2">
+                                                    Desired Profit Margin (%)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max="99"
+                                                    value={profitMargin}
+                                                    onChange={(e) => setProfitMargin(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                />
+                                                <p className="text-xs text-green-600 mt-2">
+                                                    Formula: Cost ÷ (1 - {profitMargin}%) = Selling Price
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <label className="block text-sm font-medium text-green-800 mb-2">
+                                                    Desired Profit Amount ({currency})
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    value={profitAmount}
+                                                    onChange={(e) => setProfitAmount(e.target.value)}
+                                                    placeholder="Enter profit amount needed"
+                                                    className="w-full px-3 py-2 border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                />
+                                                {costPerUnit > 0 && parseFloat(profitAmount) > 0 && (
+                                                    <div className="mt-3 p-2 bg-green-100 rounded-lg">
+                                                        <p className="text-sm text-green-800">
+                                                            <span className="font-medium">Required Margin:</span> {calculatedMarginFromAmount().toFixed(2)}%
+                                                        </p>
+                                                        <p className="text-xs text-green-600 mt-1">
+                                                            Formula: Cost ({currency}{costPerUnit.toFixed(2)}) + Profit ({currency}{profitAmount}) = Selling Price
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                 )}
 

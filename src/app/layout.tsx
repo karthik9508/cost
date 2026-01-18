@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cost Analyst - Smart Pricing & Insights",
-  description: "Comprehensive cost management, pricing decisions, and break-even analysis for your business",
+  title: "Cost Analyst | Online Cost Sheet & Product Margin Calculator",
+  description: "Master cost accounting and pricing strategies with our free online cost sheet. Calculate product margins, analyze break-even points, and optimize costing strategies.",
 };
 
 export default function RootLayout({

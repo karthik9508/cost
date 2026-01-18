@@ -40,10 +40,27 @@ const currencySymbols: { [key: string]: string } = {
 interface MaterialItem {
     id: string
     name: string
+    unit: string
     quantity: string
     rate: string
     amount: number
 }
+
+const materialUnits = [
+    { value: 'pcs', label: 'Pieces' },
+    { value: 'kg', label: 'Kg' },
+    { value: 'g', label: 'Grams' },
+    { value: 'l', label: 'Liters' },
+    { value: 'ml', label: 'ml' },
+    { value: 'm', label: 'Meters' },
+    { value: 'ft', label: 'Feet' },
+    { value: 'sq.m', label: 'Sq.m' },
+    { value: 'sq.ft', label: 'Sq.ft' },
+    { value: 'units', label: 'Units' },
+    { value: 'box', label: 'Box' },
+    { value: 'pack', label: 'Pack' },
+    { value: 'set', label: 'Set' },
+]
 
 interface LaborItem {
     id: string
@@ -69,6 +86,7 @@ interface CostSheetFormData {
 const createMaterialItem = (): MaterialItem => ({
     id: crypto.randomUUID(),
     name: '',
+    unit: 'pcs',
     quantity: '1',
     rate: '0',
     amount: 0
@@ -114,84 +132,348 @@ export default function CostSheetPage() {
 
     // PDF Export Handler - using print dialog
     const handleExportPDF = async () => {
-        // Hide non-printable elements and trigger print
-        const printContents = costSheetRef.current
-        if (!printContents) return
+        setExporting(true)
 
-        // Create a new window for printing
+        const selectedProduct = products.find(p => p.id === formData.product_id)
+        const productName = selectedProduct?.name || 'Product'
+        const productUnit = selectedProduct?.unit || 'units'
+
+        // Calculate all totals for the PDF
+        const matCost = formData.materials.reduce((sum, m) => sum + m.amount, 0)
+        const labCost = formData.labor.reduce((sum, l) => sum + l.amount, 0)
+        const primeCostVal = matCost + labCost
+        const overheadVal = parseFloat(formData.overhead_cost) || 0
+        const factoryCostVal = primeCostVal + overheadVal
+        const otherCostsVal = parseFloat(formData.other_costs) || 0
+        const totalCostVal = factoryCostVal + otherCostsVal
+        const qtyVal = parseInt(formData.quantity_produced) || 1
+        const costPerUnitVal = qtyVal > 0 ? totalCostVal / qtyVal : totalCostVal
+
+        // Calculate percentages for cost breakdown
+        const matPercent = totalCostVal > 0 ? ((matCost / totalCostVal) * 100).toFixed(1) : '0'
+        const labPercent = totalCostVal > 0 ? ((labCost / totalCostVal) * 100).toFixed(1) : '0'
+        const overheadPercent = totalCostVal > 0 ? ((overheadVal / totalCostVal) * 100).toFixed(1) : '0'
+        const otherPercent = totalCostVal > 0 ? ((otherCostsVal / totalCostVal) * 100).toFixed(1) : '0'
+
         const printWindow = window.open('', '_blank')
         if (!printWindow) {
             setMessage({ type: 'error', text: 'Please allow popups for PDF export' })
+            setExporting(false)
             return
         }
 
-        // Get the form HTML content
-        const content = printContents.innerHTML
+        const currentDate = new Date().toLocaleDateString('en-IN', {
+            year: 'numeric', month: 'short', day: 'numeric'
+        })
 
-        // Write the print document
+        // Build materials rows - compact
+        const materialsRows = formData.materials.map((m, i) => `
+            <tr>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${i + 1}. ${m.name || 'Material'}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 12px;">${m.quantity} ${m.unit}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${parseFloat(m.rate).toFixed(2)}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; font-size: 12px;">${currency}${m.amount.toFixed(2)}</td>
+            </tr>
+        `).join('')
+
+        // Build labor rows - compact
+        const laborRows = formData.labor.map((l, i) => `
+            <tr>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${i + 1}. ${l.description || 'Labor'}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 12px;">${l.hours} hrs</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${parseFloat(l.rate).toFixed(2)}/hr</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; font-size: 12px;">${currency}${l.amount.toFixed(2)}</td>
+            </tr>
+        `).join('')
+
         printWindow.document.write(`
             <!DOCTYPE html>
             <html>
             <head>
                 <title>Cost Sheet - ${formData.sheet_number}</title>
                 <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
                     * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: Arial, sans-serif; padding: 20px; background: white; }
-                    table { width: 100%; border-collapse: collapse; }
-                    td, th { padding: 8px 12px; border: 1px solid #d1d5db; }
-                    .bg-gray-50 { background-color: #f9fafb; }
-                    .bg-gray-100 { background-color: #f3f4f6; }
-                    .bg-gray-800, .bg-gradient-to-r { background-color: #1f2937; color: white; }
-                    .bg-blue-50 { background-color: #eff6ff; }
-                    .bg-blue-100 { background-color: #dbeafe; }
-                    .bg-green-50 { background-color: #f0fdf4; }
-                    .bg-green-100 { background-color: #dcfce7; }
-                    .bg-green-600 { background-color: #16a34a; color: white; }
-                    .bg-indigo-100 { background-color: #e0e7ff; }
-                    .bg-purple-50 { background-color: #faf5ff; }
-                    .bg-purple-100 { background-color: #f3e8ff; }
-                    .bg-orange-50 { background-color: #fff7ed; }
-                    .text-blue-600, .text-blue-800 { color: #1d4ed8; }
-                    .text-green-600, .text-green-800 { color: #16a34a; }
-                    .text-indigo-800 { color: #3730a3; }
-                    .text-purple-800 { color: #6b21a8; }
-                    .text-orange-800 { color: #9a3412; }
-                    .text-gray-300 { color: #d1d5db; }
-                    .text-gray-400 { color: #9ca3af; }
-                    .text-gray-500 { color: #6b7280; }
-                    .text-gray-600 { color: #4b5563; }
-                    .text-gray-700 { color: #374151; }
-                    .text-white { color: white; }
-                    .font-bold { font-weight: bold; }
-                    .font-semibold { font-weight: 600; }
-                    .font-medium { font-weight: 500; }
-                    .text-sm { font-size: 14px; }
-                    .text-lg { font-size: 18px; }
-                    .text-xl { font-size: 20px; }
-                    .text-2xl { font-size: 24px; }
-                    .text-right { text-align: right; }
-                    .text-center { text-align: center; }
-                    .text-left { text-align: left; }
-                    .p-2 { padding: 8px; }
-                    .p-3 { padding: 12px; }
-                    .p-4 { padding: 16px; }
-                    .p-6 { padding: 24px; }
-                    .pl-6 { padding-left: 24px; }
-                    .pl-8 { padding-left: 32px; }
-                    .border-b { border-bottom: 1px solid #e5e7eb; }
-                    .border-r { border-right: 1px solid #e5e7eb; }
-                    .rounded-xl { border-radius: 12px; }
-                    button, input, select, textarea { display: none !important; }
-                    .print\\:hidden { display: none !important; }
+                    body { 
+                        font-family: 'Inter', -apple-system, sans-serif;
+                        background: white;
+                        color: #1f2937;
+                        font-size: 12px;
+                        line-height: 1.4;
+                    }
+                    .page { max-width: 210mm; margin: 0 auto; padding: 12mm; }
+                    
+                    /* Header */
+                    .header { 
+                        display: flex; 
+                        justify-content: space-between; 
+                        align-items: flex-start;
+                        padding-bottom: 12px;
+                        border-bottom: 3px solid #1e3a8a;
+                        margin-bottom: 12px;
+                    }
+                    .company { }
+                    .company-name { font-size: 20px; font-weight: 700; color: #1e3a8a; }
+                    .doc-title { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+                    .sheet-info { text-align: right; }
+                    .sheet-no { font-size: 18px; font-weight: 700; color: #1e3a8a; }
+                    .sheet-date { font-size: 11px; color: #64748b; margin-top: 2px; }
+                    
+                    /* Info Grid */
+                    .info-grid { 
+                        display: grid; 
+                        grid-template-columns: repeat(4, 1fr); 
+                        gap: 12px; 
+                        background: #f8fafc; 
+                        padding: 10px 14px; 
+                        border-radius: 6px; 
+                        margin-bottom: 12px;
+                        border: 1px solid #e2e8f0;
+                    }
+                    .info-box { }
+                    .info-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+                    .info-value { font-size: 12px; font-weight: 600; color: #1e293b; }
+                    
+                    /* Main Cost Table */
+                    .cost-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden; }
+                    .cost-table th { 
+                        background: #f1f5f9; 
+                        padding: 8px 10px; 
+                        font-size: 10px; 
+                        font-weight: 600; 
+                        text-transform: uppercase; 
+                        letter-spacing: 0.5px;
+                        color: #475569;
+                        border-bottom: 2px solid #d1d5db;
+                    }
+                    .section-row { background: linear-gradient(90deg, #eff6ff, #f8fafc); }
+                    .section-row td { 
+                        padding: 8px 10px; 
+                        font-weight: 600; 
+                        font-size: 11px; 
+                        color: #1e40af;
+                        border-bottom: 1px solid #d1d5db;
+                    }
+                    .section-row .badge { 
+                        display: inline-block;
+                        width: 20px; 
+                        height: 20px; 
+                        background: #2563eb; 
+                        color: white; 
+                        border-radius: 4px; 
+                        text-align: center; 
+                        line-height: 20px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        margin-right: 8px;
+                    }
+                    .section-row.labor { background: linear-gradient(90deg, #f0fdf4, #f8fafc); }
+                    .section-row.labor td { color: #166534; }
+                    .section-row.labor .badge { background: #16a34a; }
+                    .section-row.overhead { background: linear-gradient(90deg, #faf5ff, #f8fafc); }
+                    .section-row.overhead td { color: #6b21a8; }
+                    .section-row.overhead .badge { background: #9333ea; }
+                    .section-row.other { background: linear-gradient(90deg, #fff7ed, #f8fafc); }
+                    .section-row.other td { color: #9a3412; }
+                    .section-row.other .badge { background: #ea580c; }
+                    
+                    .subtotal-row { background: #f8fafc; }
+                    .subtotal-row td { padding: 6px 10px; font-weight: 600; font-size: 11px; border-bottom: 1px solid #d1d5db; }
+                    
+                    .prime-row { background: linear-gradient(90deg, #e0e7ff, #eef2ff); }
+                    .prime-row td { padding: 8px 10px; font-weight: 700; color: #3730a3; font-size: 12px; border-bottom: 2px solid #c7d2fe; }
+                    
+                    .factory-row { background: linear-gradient(90deg, #f3e8ff, #faf5ff); }
+                    .factory-row td { padding: 8px 10px; font-weight: 700; color: #6b21a8; font-size: 12px; border-bottom: 2px solid #e9d5ff; }
+                    
+                    /* Summary Section */
+                    .summary { display: flex; gap: 12px; margin-bottom: 12px; }
+                    .summary-left { flex: 1; }
+                    .summary-right { width: 220px; }
+                    
+                    .breakdown { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; height: 100%; }
+                    .breakdown-title { font-size: 10px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
+                    .breakdown-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
+                    .breakdown-row .label { color: #64748b; }
+                    .breakdown-row .value { font-weight: 600; color: #1e293b; }
+                    .breakdown-row .percent { color: #94a3b8; font-size: 10px; margin-left: 4px; }
+                    
+                    .totals { border-radius: 6px; overflow: hidden; height: 100%; display: flex; flex-direction: column; }
+                    .total-box { padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+                    .total-main { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; flex: 1; }
+                    .total-unit { background: linear-gradient(135deg, #166534, #22c55e); color: white; flex: 1; }
+                    .total-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
+                    .total-value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+                    
+                    /* Notes */
+                    .notes { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px; margin-bottom: 12px; }
+                    .notes-title { font-size: 10px; font-weight: 600; color: #92400e; text-transform: uppercase; margin-bottom: 4px; }
+                    .notes-content { font-size: 11px; color: #78350f; }
+                    
+                    /* Footer */
+                    .footer { display: flex; justify-content: space-between; padding-top: 16px; border-top: 1px solid #e2e8f0; margin-top: 16px; }
+                    .sig-box { width: 140px; text-align: center; }
+                    .sig-line { border-top: 1px solid #94a3b8; margin-top: 36px; padding-top: 4px; font-size: 10px; color: #64748b; }
+                    .footer-meta { font-size: 9px; color: #94a3b8; text-align: center; margin-top: 12px; }
+                    
                     @media print {
-                        body { padding: 0; }
-                        @page { margin: 10mm; }
+                        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        .page { padding: 0; max-width: 100%; }
+                        @page { margin: 10mm; size: A4; }
                     }
                 </style>
             </head>
             <body>
-                <div class="rounded-xl" style="border: 1px solid #d1d5db; overflow: hidden;">
-                    ${content}
+                <div class="page">
+                    <!-- Header -->
+                    <div class="header">
+                        <div class="company">
+                            <div class="company-name">${settings?.business_name || 'Cost Analyst'}</div>
+                            <div class="doc-title">Cost Sheet Statement</div>
+                        </div>
+                        <div class="sheet-info">
+                            <div class="sheet-no">#${formData.sheet_number}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Grid -->
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <div class="info-label">Product / Service</div>
+                            <div class="info-value">${productName}</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Quantity Produced</div>
+                            <div class="info-value">${formData.quantity_produced} ${productUnit}</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Cost Unit</div>
+                            <div class="info-value">${formData.cost_unit === 'per_unit' ? 'Per Unit' : 'Per Batch'}</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Currency</div>
+                            <div class="info-value">${settings?.currency || 'INR'}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Cost Table -->
+                    <table class="cost-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40%; text-align: left;">Particulars</th>
+                                <th style="width: 20%; text-align: center;">Qty / Hrs</th>
+                                <th style="width: 20%; text-align: right;">Rate</th>
+                                <th style="width: 20%; text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Materials -->
+                            <tr class="section-row">
+                                <td colspan="4"><span class="badge">A</span>Direct Materials</td>
+                            </tr>
+                            ${materialsRows}
+                            <tr class="subtotal-row">
+                                <td colspan="3" style="text-align: right; color: #1e40af;">Total Materials</td>
+                                <td style="text-align: right; color: #1e40af;">${currency}${matCost.toFixed(2)}</td>
+                            </tr>
+                            
+                            <!-- Labor -->
+                            <tr class="section-row labor">
+                                <td colspan="4"><span class="badge">B</span>Direct Labor</td>
+                            </tr>
+                            ${laborRows}
+                            <tr class="subtotal-row">
+                                <td colspan="3" style="text-align: right; color: #166534;">Total Labor</td>
+                                <td style="text-align: right; color: #166534;">${currency}${labCost.toFixed(2)}</td>
+                            </tr>
+                            
+                            <!-- Prime Cost -->
+                            <tr class="prime-row">
+                                <td colspan="3" style="text-align: right;">PRIME COST (A + B)</td>
+                                <td style="text-align: right;">${currency}${primeCostVal.toFixed(2)}</td>
+                            </tr>
+                            
+                            <!-- Overhead -->
+                            <tr class="section-row overhead">
+                                <td colspan="4"><span class="badge">C</span>Manufacturing Overhead</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">Factory Overhead, Utilities, Depreciation</td>
+                                <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${overheadVal.toFixed(2)}</td>
+                            </tr>
+                            
+                            <!-- Factory Cost -->
+                            <tr class="factory-row">
+                                <td colspan="3" style="text-align: right;">FACTORY COST (Prime + C)</td>
+                                <td style="text-align: right;">${currency}${factoryCostVal.toFixed(2)}</td>
+                            </tr>
+                            
+                            <!-- Other Costs -->
+                            <tr class="section-row other">
+                                <td colspan="4"><span class="badge">D</span>Other Costs</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">Admin, Selling & Distribution Expenses</td>
+                                <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${otherCostsVal.toFixed(2)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Summary Section -->
+                    <div class="summary">
+                        <div class="summary-left">
+                            <div class="breakdown">
+                                <div class="breakdown-title">Cost Breakdown</div>
+                                <div class="breakdown-row">
+                                    <span class="label">Direct Materials</span>
+                                    <span><span class="value">${currency}${matCost.toFixed(2)}</span><span class="percent">(${matPercent}%)</span></span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="label">Direct Labor</span>
+                                    <span><span class="value">${currency}${labCost.toFixed(2)}</span><span class="percent">(${labPercent}%)</span></span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="label">Manufacturing Overhead</span>
+                                    <span><span class="value">${currency}${overheadVal.toFixed(2)}</span><span class="percent">(${overheadPercent}%)</span></span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="label">Other Costs</span>
+                                    <span><span class="value">${currency}${otherCostsVal.toFixed(2)}</span><span class="percent">(${otherPercent}%)</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="summary-right">
+                            <div class="totals">
+                                <div class="total-box total-main">
+                                    <div>
+                                        <div class="total-label">Total Cost</div>
+                                        <div class="total-value">${currency}${totalCostVal.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                                <div class="total-box total-unit">
+                                    <div>
+                                        <div class="total-label">Cost Per Unit</div>
+                                        <div class="total-value">${currency}${costPerUnitVal.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${formData.notes ? `
+                    <div class="notes">
+                        <div class="notes-title">Notes & Remarks</div>
+                        <div class="notes-content">${formData.notes}</div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Footer -->
+                    <div class="footer">
+                        <div class="sig-box"><div class="sig-line">Prepared By</div></div>
+                        <div class="sig-box"><div class="sig-line">Checked By</div></div>
+                        <div class="sig-box"><div class="sig-line">Approved By</div></div>
+                    </div>
+                    <div class="footer-meta">Generated on ${currentDate} • ${settings?.business_name || 'Cost Analyst'}</div>
                 </div>
             </body>
             </html>
@@ -199,13 +481,13 @@ export default function CostSheetPage() {
 
         printWindow.document.close()
 
-        // Wait for content to load then print
         setTimeout(() => {
             printWindow.print()
             printWindow.close()
-        }, 500)
+            setExporting(false)
+        }, 600)
 
-        setMessage({ type: 'success', text: 'Print dialog opened - save as PDF' })
+        setMessage({ type: 'success', text: 'PDF export ready - save from print dialog' })
     }
 
 
@@ -337,7 +619,7 @@ export default function CostSheetPage() {
             date: sheet.date,
             quantity_produced: sheet.quantity_produced.toString(),
             cost_unit: sheet.cost_unit,
-            materials: [{ id: '1', name: 'Raw Materials', quantity: '1', rate: sheet.material_cost.toString(), amount: sheet.material_cost }],
+            materials: [{ id: '1', name: 'Raw Materials', unit: 'pcs', quantity: '1', rate: sheet.material_cost.toString(), amount: sheet.material_cost }],
             labor: [{ id: '1', description: 'Direct Labor', hours: sheet.labor_hours.toString(), rate: sheet.labor_rate.toString(), amount: sheet.labor_cost }],
             overhead_cost: sheet.overhead_cost.toString(),
             other_costs: sheet.other_costs.toString(),
@@ -427,15 +709,6 @@ export default function CostSheetPage() {
                                     <button onClick={handleDelete} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button>
                                 </>
                             )}
-                            <button onClick={() => window.print()} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"><Printer size={18} /></button>
-                            <button
-                                onClick={handleExportPDF}
-                                disabled={exporting}
-                                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg disabled:opacity-50"
-                            >
-                                {exporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                                PDF
-                            </button>
                         </div>
 
                         {costSheets.length > 0 && (
@@ -484,7 +757,15 @@ export default function CostSheetPage() {
                                         <td className="p-3 bg-gray-50 font-medium text-gray-700 border-r">Product / Job</td>
                                         <td className="p-3 border-r">
                                             {isEditing ? (
-                                                <select required value={formData.product_id} onChange={(e) => setFormData({ ...formData, product_id: e.target.value })} className="w-full px-2 py-1 border rounded">
+                                                <select required value={formData.product_id} onChange={(e) => {
+                                                    const selectedProduct = products.find(p => p.id === e.target.value)
+                                                    const quantityFromProduct = selectedProduct?.expected_monthly_quantity || 1
+                                                    setFormData({
+                                                        ...formData,
+                                                        product_id: e.target.value,
+                                                        quantity_produced: quantityFromProduct.toString()
+                                                    })
+                                                }} className="w-full px-2 py-1 border rounded">
                                                     <option value="">Select...</option>
                                                     {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                                                 </select>
@@ -534,55 +815,109 @@ export default function CostSheetPage() {
                                 </thead>
                                 <tbody>
                                     {/* DIRECT MATERIALS SECTION */}
-                                    <tr className="bg-blue-50">
-                                        <td colSpan={4} className="p-2 font-semibold text-blue-800 border-b border-gray-300">
+                                    <tr className="bg-gradient-to-r from-blue-50 to-blue-100">
+                                        <td colSpan={5} className="p-3 font-semibold text-blue-800 border-b border-blue-200">
                                             <div className="flex items-center justify-between">
-                                                <span>A. DIRECT MATERIALS</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">A</span>
+                                                    <span className="text-base">DIRECT MATERIALS</span>
+                                                    <span className="text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full ml-2">{formData.materials.length} item{formData.materials.length > 1 ? 's' : ''}</span>
+                                                </div>
                                                 {isEditing && (
-                                                    <button type="button" onClick={addMaterialItem} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
+                                                    <button type="button" onClick={addMaterialItem} className="flex items-center gap-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm">
                                                         <PlusCircle size={16} /> Add Material
                                                     </button>
                                                 )}
                                             </div>
                                         </td>
                                     </tr>
+                                    {/* Materials Table Header */}
+                                    <tr className="bg-blue-50/50">
+                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r w-2/5">Material Name</td>
+                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r text-center w-20">Unit</td>
+                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r text-center w-20">Qty</td>
+                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r text-right w-28">Rate</td>
+                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b text-right w-32">Amount</td>
+                                    </tr>
                                     {formData.materials.map((material, index) => (
-                                        <tr key={material.id} className="border-b border-gray-200">
+                                        <tr key={material.id} className="border-b border-gray-200 hover:bg-blue-50/30 transition-colors group">
                                             <td className="p-2 border-r">
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-gray-400 w-6">{index + 1}.</span>
+                                                        <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
                                                         <input
                                                             type="text"
                                                             placeholder="Material name..."
                                                             value={material.name}
                                                             onChange={(e) => updateMaterialItem(material.id, 'name', e.target.value)}
-                                                            className="flex-1 px-2 py-1 border rounded"
+                                                            className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-all"
                                                         />
                                                         {formData.materials.length > 1 && (
-                                                            <button type="button" onClick={() => removeMaterialItem(material.id)} className="text-red-400 hover:text-red-600">
+                                                            <button type="button" onClick={() => removeMaterialItem(material.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-all">
                                                                 <X size={16} />
                                                             </button>
                                                         )}
                                                     </div>
-                                                ) : <span className="pl-6">{material.name || `Material ${index + 1}`}</span>}
+                                                ) : (
+                                                    <div className="flex items-center gap-2 pl-2">
+                                                        <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
+                                                        <span className="font-medium text-gray-700">{material.name || `Material ${index + 1}`}</span>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="p-2 border-r text-center">
                                                 {isEditing ? (
-                                                    <input type="number" min="0" step="0.01" value={material.quantity} onChange={(e) => updateMaterialItem(material.id, 'quantity', e.target.value)} className="w-full px-1 py-1 border rounded text-center" />
-                                                ) : <span>{material.quantity}</span>}
+                                                    <select
+                                                        value={material.unit}
+                                                        onChange={(e) => updateMaterialItem(material.id, 'unit', e.target.value)}
+                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-center text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                                                    >
+                                                        {materialUnits.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                                                    </select>
+                                                ) : <span className="text-gray-500 text-sm">{materialUnits.find(u => u.value === material.unit)?.label || material.unit}</span>}
+                                            </td>
+                                            <td className="p-2 border-r text-center">
+                                                {isEditing ? (
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={material.quantity}
+                                                        onChange={(e) => updateMaterialItem(material.id, 'quantity', e.target.value)}
+                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-center focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                                                    />
+                                                ) : <span className="font-medium">{material.quantity}</span>}
                                             </td>
                                             <td className="p-2 border-r text-right">
                                                 {isEditing ? (
-                                                    <input type="number" min="0" step="0.01" value={material.rate} onChange={(e) => updateMaterialItem(material.id, 'rate', e.target.value)} className="w-full px-1 py-1 border rounded text-right" />
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={material.rate}
+                                                        onChange={(e) => updateMaterialItem(material.id, 'rate', e.target.value)}
+                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-right focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                                                    />
                                                 ) : <span>{currency}{parseFloat(material.rate).toFixed(2)}</span>}
                                             </td>
-                                            <td className="p-2 text-right font-medium">{currency}{material.amount.toFixed(2)}</td>
+                                            <td className="p-2 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className="font-semibold text-gray-800">{currency}{material.amount.toFixed(2)}</span>
+                                                    {totalMaterialCost > 0 && material.amount > 0 && (
+                                                        <span className="text-xs text-blue-500">{((material.amount / totalMaterialCost) * 100).toFixed(1)}%</span>
+                                                    )}
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
-                                    <tr className="bg-blue-100">
-                                        <td colSpan={3} className="p-2 text-right font-semibold text-blue-800 border-b border-r">Total Direct Materials</td>
-                                        <td className="p-2 text-right font-bold text-blue-800 border-b">{currency}{totalMaterialCost.toFixed(2)}</td>
+                                    <tr className="bg-gradient-to-r from-blue-100 to-blue-200">
+                                        <td colSpan={4} className="p-3 text-right font-semibold text-blue-800 border-b border-r">
+                                            <span className="flex items-center justify-end gap-2">
+                                                Total Direct Materials
+                                                <span className="text-xs bg-blue-300 text-blue-800 px-2 py-0.5 rounded-full">{formData.materials.length} items</span>
+                                            </span>
+                                        </td>
+                                        <td className="p-3 text-right font-bold text-blue-900 border-b text-lg">{currency}{totalMaterialCost.toFixed(2)}</td>
                                     </tr>
 
                                     {/* DIRECT LABOR SECTION */}
@@ -698,15 +1033,34 @@ export default function CostSheetPage() {
                             ) : <p className="text-gray-600">{formData.notes || 'No notes'}</p>}
                         </div>
 
-                        {/* Save Button */}
-                        {isEditing && (
-                            <div className="p-4 bg-gray-50 border-t print:hidden">
-                                <button type="submit" disabled={saving || products.length === 0} className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50">
-                                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={20} />}
-                                    {currentSheet ? 'Update' : 'Save'} Cost Sheet
+                        {/* Action Buttons - Save, Print, PDF in single line */}
+                        <div className="p-4 bg-gray-50 border-t print:hidden">
+                            <div className="flex items-center justify-center gap-3">
+                                {isEditing && (
+                                    <button type="submit" disabled={saving || products.length === 0} className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors">
+                                        {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={20} />}
+                                        {currentSheet ? 'Update' : 'Save'} Cost Sheet
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => window.print()}
+                                    className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg border border-gray-300 transition-colors"
+                                >
+                                    <Printer size={20} />
+                                    Print
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleExportPDF}
+                                    disabled={exporting}
+                                    className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                                >
+                                    {exporting ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
+                                    Download PDF
                                 </button>
                             </div>
-                        )}
+                        </div>
                     </form>
                 </div>
             </div>
