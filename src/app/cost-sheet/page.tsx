@@ -37,31 +37,6 @@ const currencySymbols: { [key: string]: string } = {
     'SAR': '﷼'
 }
 
-interface MaterialItem {
-    id: string
-    name: string
-    unit: string
-    quantity: string
-    rate: string
-    amount: number
-}
-
-const materialUnits = [
-    { value: 'pcs', label: 'Pieces' },
-    { value: 'kg', label: 'Kg' },
-    { value: 'g', label: 'Grams' },
-    { value: 'l', label: 'Liters' },
-    { value: 'ml', label: 'ml' },
-    { value: 'm', label: 'Meters' },
-    { value: 'ft', label: 'Feet' },
-    { value: 'sq.m', label: 'Sq.m' },
-    { value: 'sq.ft', label: 'Sq.ft' },
-    { value: 'units', label: 'Units' },
-    { value: 'box', label: 'Box' },
-    { value: 'pack', label: 'Pack' },
-    { value: 'set', label: 'Set' },
-]
-
 interface LaborItem {
     id: string
     description: string
@@ -76,21 +51,21 @@ interface CostSheetFormData {
     date: string
     quantity_produced: string
     cost_unit: 'per_unit' | 'per_batch'
-    materials: MaterialItem[]
+    // Direct Materials - Material Consumed
+    opening_stock: string
+    purchases: string
+    carriage_inward: string
+    closing_stock: string
+    scrap: string
+    // Labor
     labor: LaborItem[]
-    overhead_cost: string
+    // Overheads
+    factory_overhead: string
+    utilities: string
+    depreciation: string
     other_costs: string
     notes: string
 }
-
-const createMaterialItem = (): MaterialItem => ({
-    id: crypto.randomUUID(),
-    name: '',
-    unit: 'pcs',
-    quantity: '1',
-    rate: '0',
-    amount: 0
-})
 
 const createLaborItem = (): LaborItem => ({
     id: crypto.randomUUID(),
@@ -106,9 +81,18 @@ const emptyForm: CostSheetFormData = {
     date: new Date().toISOString().split('T')[0],
     quantity_produced: '1',
     cost_unit: 'per_unit',
-    materials: [createMaterialItem()],
+    // Direct Materials
+    opening_stock: '0',
+    purchases: '0',
+    carriage_inward: '0',
+    closing_stock: '0',
+    scrap: '0',
+    // Labor
     labor: [createLaborItem()],
-    overhead_cost: '0',
+    // Overheads
+    factory_overhead: '0',
+    utilities: '0',
+    depreciation: '0',
     other_costs: '0',
     notes: ''
 }
@@ -139,10 +123,20 @@ export default function CostSheetPage() {
         const productUnit = selectedProduct?.unit || 'units'
 
         // Calculate all totals for the PDF
-        const matCost = formData.materials.reduce((sum, m) => sum + m.amount, 0)
+        // Direct Material Consumed = Opening Stock + Purchases + Carriage Inward - Closing Stock - Scrap
+        const openingStockVal = parseFloat(formData.opening_stock) || 0
+        const purchasesVal = parseFloat(formData.purchases) || 0
+        const carriageInwardVal = parseFloat(formData.carriage_inward) || 0
+        const closingStockVal = parseFloat(formData.closing_stock) || 0
+        const scrapVal = parseFloat(formData.scrap) || 0
+        const matCost = openingStockVal + purchasesVal + carriageInwardVal - closingStockVal - scrapVal
+
         const labCost = formData.labor.reduce((sum, l) => sum + l.amount, 0)
         const primeCostVal = matCost + labCost
-        const overheadVal = parseFloat(formData.overhead_cost) || 0
+        const factoryOverheadVal = parseFloat(formData.factory_overhead) || 0
+        const utilitiesVal = parseFloat(formData.utilities) || 0
+        const depreciationVal = parseFloat(formData.depreciation) || 0
+        const overheadVal = factoryOverheadVal + utilitiesVal + depreciationVal
         const factoryCostVal = primeCostVal + overheadVal
         const otherCostsVal = parseFloat(formData.other_costs) || 0
         const totalCostVal = factoryCostVal + otherCostsVal
@@ -166,15 +160,29 @@ export default function CostSheetPage() {
             year: 'numeric', month: 'short', day: 'numeric'
         })
 
-        // Build materials rows - compact
-        const materialsRows = formData.materials.map((m, i) => `
+        // Build materials rows - formula based
+        const materialsRows = `
             <tr>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${i + 1}. ${m.name || 'Material'}</td>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 12px;">${m.quantity} ${m.unit}</td>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${parseFloat(m.rate).toFixed(2)}</td>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; font-size: 12px;">${currency}${m.amount.toFixed(2)}</td>
+                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px;">Opening Stock of Raw Materials</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${openingStockVal.toFixed(2)}</td>
             </tr>
-        `).join('')
+            <tr>
+                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px;">Add: Purchases</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${purchasesVal.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px;">Add: Carriage Inward</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${carriageInwardVal.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px; color: #dc2626;">Less: Closing Stock</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px; color: #dc2626;">(${currency}${closingStockVal.toFixed(2)})</td>
+            </tr>
+            <tr>
+                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px; color: #dc2626;">Less: Scrap</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px; color: #dc2626;">(${currency}${scrapVal.toFixed(2)})</td>
+            </tr>
+        `
 
         // Build labor rows - compact
         const laborRows = formData.labor.map((l, i) => `
@@ -398,8 +406,20 @@ export default function CostSheetPage() {
                                 <td colspan="4"><span class="badge">C</span>Manufacturing Overhead</td>
                             </tr>
                             <tr>
-                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">Factory Overhead, Utilities, Depreciation</td>
-                                <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${overheadVal.toFixed(2)}</td>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; padding-left: 30px;">1. Factory Overhead</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${factoryOverheadVal.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; padding-left: 30px;">2. Utilities</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${utilitiesVal.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; padding-left: 30px;">3. Depreciation</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${depreciationVal.toFixed(2)}</td>
+                            </tr>
+                            <tr class="subtotal-row">
+                                <td colspan="3" style="text-align: right; color: #6b21a8;">Total Manufacturing Overhead</td>
+                                <td style="text-align: right; color: #6b21a8;">${currency}${overheadVal.toFixed(2)}</td>
                             </tr>
                             
                             <!-- Factory Cost -->
@@ -515,37 +535,6 @@ export default function CostSheetPage() {
         loadData()
     }, [router])
 
-    // Material item handlers
-    const addMaterialItem = () => {
-        setFormData({
-            ...formData,
-            materials: [...formData.materials, createMaterialItem()]
-        })
-    }
-
-    const removeMaterialItem = (id: string) => {
-        if (formData.materials.length > 1) {
-            setFormData({
-                ...formData,
-                materials: formData.materials.filter(m => m.id !== id)
-            })
-        }
-    }
-
-    const updateMaterialItem = (id: string, field: keyof MaterialItem, value: string) => {
-        setFormData({
-            ...formData,
-            materials: formData.materials.map(m => {
-                if (m.id === id) {
-                    const updated = { ...m, [field]: value }
-                    updated.amount = (parseFloat(updated.quantity) || 0) * (parseFloat(updated.rate) || 0)
-                    return updated
-                }
-                return m
-            })
-        })
-    }
-
     // Labor item handlers
     const addLaborItem = () => {
         setFormData({
@@ -578,11 +567,21 @@ export default function CostSheetPage() {
     }
 
     // Calculate totals
-    const totalMaterialCost = formData.materials.reduce((sum, m) => sum + m.amount, 0)
+    // Direct Material Consumed = Opening Stock + Purchases + Carriage Inward - Closing Stock - Scrap
+    const openingStock = parseFloat(formData.opening_stock) || 0
+    const purchases = parseFloat(formData.purchases) || 0
+    const carriageInward = parseFloat(formData.carriage_inward) || 0
+    const closingStock = parseFloat(formData.closing_stock) || 0
+    const scrap = parseFloat(formData.scrap) || 0
+    const totalMaterialCost = openingStock + purchases + carriageInward - closingStock - scrap
+
     const totalLaborCost = formData.labor.reduce((sum, l) => sum + l.amount, 0)
     const primeCost = totalMaterialCost + totalLaborCost
-    const overheadCost = parseFloat(formData.overhead_cost) || 0
-    const factoryCost = primeCost + overheadCost
+    const factoryOverhead = parseFloat(formData.factory_overhead) || 0
+    const utilities = parseFloat(formData.utilities) || 0
+    const depreciation = parseFloat(formData.depreciation) || 0
+    const totalOverhead = factoryOverhead + utilities + depreciation
+    const factoryCost = primeCost + totalOverhead
     const otherCosts = parseFloat(formData.other_costs) || 0
     const totalCost = factoryCost + otherCosts
     const quantity = parseInt(formData.quantity_produced) || 1
@@ -619,9 +618,16 @@ export default function CostSheetPage() {
             date: sheet.date,
             quantity_produced: sheet.quantity_produced.toString(),
             cost_unit: sheet.cost_unit,
-            materials: [{ id: '1', name: 'Raw Materials', unit: 'pcs', quantity: '1', rate: sheet.material_cost.toString(), amount: sheet.material_cost }],
+            // Material consumed - load total material_cost into purchases as a reasonable default
+            opening_stock: '0',
+            purchases: sheet.material_cost.toString(),
+            carriage_inward: '0',
+            closing_stock: '0',
+            scrap: '0',
             labor: [{ id: '1', description: 'Direct Labor', hours: sheet.labor_hours.toString(), rate: sheet.labor_rate.toString(), amount: sheet.labor_cost }],
-            overhead_cost: sheet.overhead_cost.toString(),
+            factory_overhead: sheet.overhead_cost.toString(),
+            utilities: '0',
+            depreciation: '0',
             other_costs: sheet.other_costs.toString(),
             notes: sheet.notes || ''
         })
@@ -642,7 +648,7 @@ export default function CostSheetPage() {
         form.set('material_cost', totalMaterialCost.toString())
         form.set('labor_hours', formData.labor.reduce((sum, l) => sum + (parseFloat(l.hours) || 0), 0).toString())
         form.set('labor_rate', formData.labor.length > 0 ? (totalLaborCost / Math.max(formData.labor.reduce((sum, l) => sum + (parseFloat(l.hours) || 0), 0), 1)).toString() : '0')
-        form.set('overhead_cost', formData.overhead_cost)
+        form.set('overhead_cost', totalOverhead.toString())
         form.set('other_costs', formData.other_costs)
         form.set('notes', formData.notes)
 
@@ -817,154 +823,216 @@ export default function CostSheetPage() {
                                     {/* DIRECT MATERIALS SECTION */}
                                     <tr className="bg-gradient-to-r from-blue-50 to-blue-100">
                                         <td colSpan={5} className="p-3 font-semibold text-blue-800 border-b border-blue-200">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">A</span>
-                                                    <span className="text-base">DIRECT MATERIALS</span>
-                                                    <span className="text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full ml-2">{formData.materials.length} item{formData.materials.length > 1 ? 's' : ''}</span>
-                                                </div>
-                                                {isEditing && (
-                                                    <button type="button" onClick={addMaterialItem} className="flex items-center gap-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm">
-                                                        <PlusCircle size={16} /> Add Material
-                                                    </button>
-                                                )}
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">A</span>
+                                                <span className="text-base">DIRECT MATERIALS CONSUMED</span>
                                             </div>
                                         </td>
                                     </tr>
-                                    {/* Materials Table Header */}
+                                    {/* Materials Formula Sub-header */}
                                     <tr className="bg-blue-50/50">
-                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r w-2/5">Material Name</td>
-                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r text-center w-20">Unit</td>
-                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r text-center w-20">Qty</td>
-                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r text-right w-28">Rate</td>
+                                        <td colSpan={4} className="p-2 text-xs font-medium text-blue-600 border-b border-r italic">
+                                            Formula: Opening Stock + Purchases + Carriage Inward - Closing Stock - Scrap
+                                        </td>
                                         <td className="p-2 text-xs font-semibold text-blue-700 border-b text-right w-32">Amount</td>
                                     </tr>
-                                    {formData.materials.map((material, index) => (
-                                        <tr key={material.id} className="border-b border-gray-200 hover:bg-blue-50/30 transition-colors group">
-                                            <td className="p-2 border-r">
-                                                {isEditing ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Material name..."
-                                                            value={material.name}
-                                                            onChange={(e) => updateMaterialItem(material.id, 'name', e.target.value)}
-                                                            className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-all"
-                                                        />
-                                                        {formData.materials.length > 1 && (
-                                                            <button type="button" onClick={() => removeMaterialItem(material.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-all">
-                                                                <X size={16} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 pl-2">
-                                                        <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
-                                                        <span className="font-medium text-gray-700">{material.name || `Material ${index + 1}`}</span>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="p-2 border-r text-center">
-                                                {isEditing ? (
-                                                    <select
-                                                        value={material.unit}
-                                                        onChange={(e) => updateMaterialItem(material.id, 'unit', e.target.value)}
-                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-center text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                                                    >
-                                                        {materialUnits.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
-                                                    </select>
-                                                ) : <span className="text-gray-500 text-sm">{materialUnits.find(u => u.value === material.unit)?.label || material.unit}</span>}
-                                            </td>
-                                            <td className="p-2 border-r text-center">
-                                                {isEditing ? (
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        value={material.quantity}
-                                                        onChange={(e) => updateMaterialItem(material.id, 'quantity', e.target.value)}
-                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-center focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                                                    />
-                                                ) : <span className="font-medium">{material.quantity}</span>}
-                                            </td>
-                                            <td className="p-2 border-r text-right">
-                                                {isEditing ? (
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        value={material.rate}
-                                                        onChange={(e) => updateMaterialItem(material.id, 'rate', e.target.value)}
-                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-right focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                                                    />
-                                                ) : <span>{currency}{parseFloat(material.rate).toFixed(2)}</span>}
-                                            </td>
-                                            <td className="p-2 text-right">
-                                                <div className="flex flex-col items-end">
-                                                    <span className="font-semibold text-gray-800">{currency}{material.amount.toFixed(2)}</span>
-                                                    {totalMaterialCost > 0 && material.amount > 0 && (
-                                                        <span className="text-xs text-blue-500">{((material.amount / totalMaterialCost) * 100).toFixed(1)}%</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {/* Opening Stock */}
+                                    <tr className="border-b border-gray-200 hover:bg-blue-50/30">
+                                        <td colSpan={4} className="p-2 border-r">
+                                            <div className="flex items-center gap-2 pl-2">
+                                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">1</span>
+                                                <span className="font-medium text-gray-700">Opening Stock of Raw Materials</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {isEditing ? (
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={formData.opening_stock}
+                                                    onChange={(e) => setFormData({ ...formData, opening_stock: e.target.value })}
+                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                                                />
+                                            ) : <span className="font-medium">{currency}{parseFloat(formData.opening_stock).toFixed(2)}</span>}
+                                        </td>
+                                    </tr>
+                                    {/* Add: Purchases */}
+                                    <tr className="border-b border-gray-200 hover:bg-blue-50/30">
+                                        <td colSpan={4} className="p-2 border-r">
+                                            <div className="flex items-center gap-2 pl-2">
+                                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">+</span>
+                                                <span className="font-medium text-gray-700">Add: Purchases</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {isEditing ? (
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={formData.purchases}
+                                                    onChange={(e) => setFormData({ ...formData, purchases: e.target.value })}
+                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                                                />
+                                            ) : <span className="font-medium">{currency}{parseFloat(formData.purchases).toFixed(2)}</span>}
+                                        </td>
+                                    </tr>
+                                    {/* Add: Carriage Inward */}
+                                    <tr className="border-b border-gray-200 hover:bg-blue-50/30">
+                                        <td colSpan={4} className="p-2 border-r">
+                                            <div className="flex items-center gap-2 pl-2">
+                                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">+</span>
+                                                <span className="font-medium text-gray-700">Add: Carriage Inward</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {isEditing ? (
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={formData.carriage_inward}
+                                                    onChange={(e) => setFormData({ ...formData, carriage_inward: e.target.value })}
+                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                                                />
+                                            ) : <span className="font-medium">{currency}{parseFloat(formData.carriage_inward).toFixed(2)}</span>}
+                                        </td>
+                                    </tr>
+                                    {/* Less: Closing Stock */}
+                                    <tr className="border-b border-gray-200 hover:bg-red-50/30">
+                                        <td colSpan={4} className="p-2 border-r">
+                                            <div className="flex items-center gap-2 pl-2">
+                                                <span className="w-6 h-6 bg-red-100 text-red-600 rounded flex items-center justify-center text-xs font-medium">−</span>
+                                                <span className="font-medium text-gray-700">Less: Closing Stock</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {isEditing ? (
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={formData.closing_stock}
+                                                    onChange={(e) => setFormData({ ...formData, closing_stock: e.target.value })}
+                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-red-400 focus:ring-1 focus:ring-red-400 outline-none"
+                                                />
+                                            ) : <span className="font-medium text-red-600">({currency}{parseFloat(formData.closing_stock).toFixed(2)})</span>}
+                                        </td>
+                                    </tr>
+                                    {/* Less: Scrap */}
+                                    <tr className="border-b border-gray-200 hover:bg-red-50/30">
+                                        <td colSpan={4} className="p-2 border-r">
+                                            <div className="flex items-center gap-2 pl-2">
+                                                <span className="w-6 h-6 bg-red-100 text-red-600 rounded flex items-center justify-center text-xs font-medium">−</span>
+                                                <span className="font-medium text-gray-700">Less: Scrap Value</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {isEditing ? (
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={formData.scrap}
+                                                    onChange={(e) => setFormData({ ...formData, scrap: e.target.value })}
+                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-red-400 focus:ring-1 focus:ring-red-400 outline-none"
+                                                />
+                                            ) : <span className="font-medium text-red-600">({currency}{parseFloat(formData.scrap).toFixed(2)})</span>}
+                                        </td>
+                                    </tr>
+                                    {/* Total Direct Materials Consumed */}
                                     <tr className="bg-gradient-to-r from-blue-100 to-blue-200">
                                         <td colSpan={4} className="p-3 text-right font-semibold text-blue-800 border-b border-r">
                                             <span className="flex items-center justify-end gap-2">
-                                                Total Direct Materials
-                                                <span className="text-xs bg-blue-300 text-blue-800 px-2 py-0.5 rounded-full">{formData.materials.length} items</span>
+                                                Direct Materials Consumed
                                             </span>
                                         </td>
                                         <td className="p-3 text-right font-bold text-blue-900 border-b text-lg">{currency}{totalMaterialCost.toFixed(2)}</td>
                                     </tr>
 
                                     {/* DIRECT LABOR SECTION */}
-                                    <tr className="bg-green-50">
-                                        <td colSpan={4} className="p-2 font-semibold text-green-800 border-b border-gray-300">
+                                    <tr className="bg-gradient-to-r from-green-50 to-green-100">
+                                        <td colSpan={5} className="p-3 font-semibold text-green-800 border-b border-green-200">
                                             <div className="flex items-center justify-between">
-                                                <span>B. DIRECT LABOR</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-8 h-8 bg-green-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">B</span>
+                                                    <span className="text-base">DIRECT LABOR</span>
+                                                    <span className="text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full ml-2">{formData.labor.length} item{formData.labor.length > 1 ? 's' : ''}</span>
+                                                </div>
                                                 {isEditing && (
-                                                    <button type="button" onClick={addLaborItem} className="flex items-center gap-1 text-sm text-green-600 hover:text-green-800">
+                                                    <button type="button" onClick={addLaborItem} className="flex items-center gap-1.5 text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm">
                                                         <PlusCircle size={16} /> Add Labor
                                                     </button>
                                                 )}
                                             </div>
                                         </td>
                                     </tr>
+                                    {/* Labor Table Header */}
+                                    <tr className="bg-green-50/50">
+                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r w-2/5">Description</td>
+                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r text-center w-20">Hrs</td>
+                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r text-center w-20">Wages</td>
+                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r text-right w-28">Rate/Hr</td>
+                                        <td className="p-2 text-xs font-semibold text-green-700 border-b text-right w-32">Amount</td>
+                                    </tr>
                                     {formData.labor.map((labor, index) => (
-                                        <tr key={labor.id} className="border-b border-gray-200">
+                                        <tr key={labor.id} className="border-b border-gray-200 hover:bg-green-50/30 transition-colors group">
                                             <td className="p-2 border-r">
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-gray-400 w-6">{index + 1}.</span>
+                                                        <span className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
                                                         <input
                                                             type="text"
                                                             placeholder="Labor description..."
                                                             value={labor.description}
                                                             onChange={(e) => updateLaborItem(labor.id, 'description', e.target.value)}
-                                                            className="flex-1 px-2 py-1 border rounded"
+                                                            className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none transition-all"
                                                         />
                                                         {formData.labor.length > 1 && (
-                                                            <button type="button" onClick={() => removeLaborItem(labor.id)} className="text-red-400 hover:text-red-600">
+                                                            <button type="button" onClick={() => removeLaborItem(labor.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-all">
                                                                 <X size={16} />
                                                             </button>
                                                         )}
                                                     </div>
-                                                ) : <span className="pl-6">{labor.description || `Labor ${index + 1}`}</span>}
+                                                ) : (
+                                                    <div className="flex items-center gap-2 pl-2">
+                                                        <span className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
+                                                        <span className="font-medium text-gray-700">{labor.description || `Labor ${index + 1}`}</span>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="p-2 border-r text-center">
                                                 {isEditing ? (
-                                                    <input type="number" min="0" step="0.5" value={labor.hours} onChange={(e) => updateLaborItem(labor.id, 'hours', e.target.value)} className="w-full px-1 py-1 border rounded text-center" placeholder="hrs" />
-                                                ) : <span>{labor.hours} hrs</span>}
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.5"
+                                                        value={labor.hours}
+                                                        onChange={(e) => updateLaborItem(labor.id, 'hours', e.target.value)}
+                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-center focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none"
+                                                        placeholder="Hrs"
+                                                    />
+                                                ) : <span className="font-medium">{labor.hours}</span>}
+                                            </td>
+                                            <td className="p-2 border-r text-center">
+                                                <span className="text-gray-500 text-sm">{currency}{(parseFloat(labor.hours) * parseFloat(labor.rate) || 0).toFixed(2)}</span>
                                             </td>
                                             <td className="p-2 border-r text-right">
                                                 {isEditing ? (
-                                                    <input type="number" min="0" step="0.01" value={labor.rate} onChange={(e) => updateLaborItem(labor.id, 'rate', e.target.value)} className="w-full px-1 py-1 border rounded text-right" />
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={labor.rate}
+                                                        onChange={(e) => updateLaborItem(labor.id, 'rate', e.target.value)}
+                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-right focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none"
+                                                    />
                                                 ) : <span>{currency}{parseFloat(labor.rate).toFixed(2)}/hr</span>}
                                             </td>
-                                            <td className="p-2 text-right font-medium">{currency}{labor.amount.toFixed(2)}</td>
+                                            <td className="p-2 text-right">
+                                                <span className="font-semibold text-gray-800">{currency}{labor.amount.toFixed(2)}</span>
+                                            </td>
                                         </tr>
                                     ))}
                                     <tr className="bg-green-100">
@@ -979,16 +1047,87 @@ export default function CostSheetPage() {
                                     </tr>
 
                                     {/* MANUFACTURING OVERHEAD */}
-                                    <tr className="bg-purple-50">
-                                        <td colSpan={4} className="p-2 font-semibold text-purple-800 border-b">C. MANUFACTURING OVERHEAD</td>
+                                    <tr className="bg-gradient-to-r from-purple-50 to-purple-100">
+                                        <td colSpan={5} className="p-3 font-semibold text-purple-800 border-b border-purple-200">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-8 h-8 bg-purple-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">C</span>
+                                                <span className="text-base">MANUFACTURING OVERHEAD</span>
+                                                <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full ml-2">3 items</span>
+                                            </div>
+                                        </td>
                                     </tr>
-                                    <tr className="border-b border-gray-200">
-                                        <td colSpan={3} className="p-2 pl-8 border-r">Factory Overhead, Utilities, Depreciation, etc.</td>
+                                    {/* Factory Overhead */}
+                                    <tr className="border-b border-gray-200 hover:bg-purple-50/30">
+                                        <td colSpan={4} className="p-2 border-r">
+                                            <div className="flex items-center gap-2 pl-2">
+                                                <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded flex items-center justify-center text-xs font-medium">1</span>
+                                                <span className="font-medium text-gray-700">Factory Overhead</span>
+                                            </div>
+                                        </td>
                                         <td className="p-2 text-right">
                                             {isEditing ? (
-                                                <input type="number" min="0" step="0.01" value={formData.overhead_cost} onChange={(e) => setFormData({ ...formData, overhead_cost: e.target.value })} className="w-full px-2 py-1 border rounded text-right" />
-                                            ) : <span className="font-medium">{currency}{parseFloat(formData.overhead_cost).toFixed(2)}</span>}
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={formData.factory_overhead}
+                                                    onChange={(e) => setFormData({ ...formData, factory_overhead: e.target.value })}
+                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none"
+                                                />
+                                            ) : <span className="font-medium">{currency}{parseFloat(formData.factory_overhead).toFixed(2)}</span>}
                                         </td>
+                                    </tr>
+                                    {/* Utilities */}
+                                    <tr className="border-b border-gray-200 hover:bg-purple-50/30">
+                                        <td colSpan={4} className="p-2 border-r">
+                                            <div className="flex items-center gap-2 pl-2">
+                                                <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded flex items-center justify-center text-xs font-medium">2</span>
+                                                <span className="font-medium text-gray-700">Utilities</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {isEditing ? (
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={formData.utilities}
+                                                    onChange={(e) => setFormData({ ...formData, utilities: e.target.value })}
+                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none"
+                                                />
+                                            ) : <span className="font-medium">{currency}{parseFloat(formData.utilities).toFixed(2)}</span>}
+                                        </td>
+                                    </tr>
+                                    {/* Depreciation */}
+                                    <tr className="border-b border-gray-200 hover:bg-purple-50/30">
+                                        <td colSpan={4} className="p-2 border-r">
+                                            <div className="flex items-center gap-2 pl-2">
+                                                <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded flex items-center justify-center text-xs font-medium">3</span>
+                                                <span className="font-medium text-gray-700">Depreciation</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {isEditing ? (
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={formData.depreciation}
+                                                    onChange={(e) => setFormData({ ...formData, depreciation: e.target.value })}
+                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none"
+                                                />
+                                            ) : <span className="font-medium">{currency}{parseFloat(formData.depreciation).toFixed(2)}</span>}
+                                        </td>
+                                    </tr>
+                                    {/* Total Manufacturing Overhead */}
+                                    <tr className="bg-gradient-to-r from-purple-100 to-purple-200">
+                                        <td colSpan={4} className="p-3 text-right font-semibold text-purple-800 border-b border-r">
+                                            <span className="flex items-center justify-end gap-2">
+                                                Total Manufacturing Overhead
+                                                <span className="text-xs bg-purple-300 text-purple-800 px-2 py-0.5 rounded-full">3 items</span>
+                                            </span>
+                                        </td>
+                                        <td className="p-3 text-right font-bold text-purple-900 border-b text-lg">{currency}{totalOverhead.toFixed(2)}</td>
                                     </tr>
 
                                     {/* FACTORY COST */}
