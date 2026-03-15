@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS cost_sheets (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
+    sheet_number TEXT NOT NULL,
+    date DATE NOT NULL,
+    quantity_produced INTEGER DEFAULT 1,
+    cost_unit TEXT DEFAULT 'per_unit',
+    material_cost DECIMAL(12,2) DEFAULT 0,
+    labor_cost DECIMAL(12,2) DEFAULT 0,
+    labor_hours DECIMAL(8,2) DEFAULT 0,
+    labor_rate DECIMAL(10,2) DEFAULT 0,
+    overhead_cost DECIMAL(12,2) DEFAULT 0,
+    other_costs DECIMAL(12,2) DEFAULT 0,
+    total_cost DECIMAL(12,2) DEFAULT 0,
+    cost_per_unit DECIMAL(12,2) DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE cost_sheets ENABLE ROW LEVEL SECURITY;

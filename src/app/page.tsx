@@ -15,7 +15,10 @@ import {
   ChevronRight,
   Star,
   Zap,
-  Users
+  Users,
+  BookOpen,
+  Clock,
+  ArrowUpRight
 } from "lucide-react";
 
 export default async function Home() {
@@ -43,6 +46,7 @@ export default async function Home() {
               <Link href="/cost-sheet" className="hover:text-blue-600 transition-colors">Cost Sheet</Link>
               <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
               <Link href="/break-even" className="hover:text-blue-600 transition-colors">Break-Even</Link>
+              <Link href="/blog" className="hover:text-blue-600 transition-colors">Blog</Link>
             </div>
 
             <div className="flex gap-3">
@@ -399,8 +403,148 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Blog Preview Section */}
+      <section id="blog" className="py-24 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-16 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full text-blue-600 text-xs font-semibold uppercase tracking-wide mb-6">
+              <BookOpen size={14} />
+              Knowledge Hub
+            </div>
+            <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
+              Latest from Our <span className="text-blue-600">Blog</span>
+            </h2>
+            <p className="text-lg text-slate-500">
+              Stay updated with expert insights on costing strategies, pricing methods, and management accounting best practices.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Blog Card 1 */}
+            <article className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300">
+              <div className="aspect-video bg-gradient-to-br from-blue-100 to-slate-100 relative overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <BookOpen size={48} className="text-blue-300" />
+                </div>
+                <div className="absolute top-4 left-4">
+                  <span className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
+                    Cost Accounting
+                  </span>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center gap-4 text-sm text-slate-500 mb-3">
+                  <span>Feb 5, 2026</span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={14} />
+                    8 min read
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
+                  Understanding Cost Sheet Fundamentals: A Complete Guide
+                </h3>
+                <p className="text-slate-500 text-sm mb-4 line-clamp-2">
+                  Learn the essential components of a cost sheet, including prime cost, factory cost, and total cost.
+                </p>
+                <Link
+                  href="/blog/understanding-cost-sheet-fundamentals"
+                  className="inline-flex items-center text-blue-600 font-semibold text-sm hover:text-blue-700 transition-colors"
+                >
+                  Read Article
+                  <ArrowRight size={16} className="ml-1" />
+                </Link>
+              </div>
+            </article>
+
+            {/* Blog Card 2 */}
+            <article className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300">
+              <div className="aspect-video bg-gradient-to-br from-slate-100 to-blue-100 relative overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <TrendingUp size={48} className="text-blue-300" />
+                </div>
+                <div className="absolute top-4 left-4">
+                  <span className="px-3 py-1 bg-slate-900 text-white text-xs font-semibold rounded-full">
+                    Management Accounting
+                  </span>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center gap-4 text-sm text-slate-500 mb-3">
+                  <span>Feb 3, 2026</span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={14} />
+                    6 min read
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
+                  Break-Even Analysis: Making Smarter Business Decisions
+                </h3>
+                <p className="text-slate-500 text-sm mb-4 line-clamp-2">
+                  Discover how break-even analysis helps you determine the minimum sales volume needed to cover costs.
+                </p>
+                <Link
+                  href="/blog/break-even-analysis-for-business-decisions"
+                  className="inline-flex items-center text-blue-600 font-semibold text-sm hover:text-blue-700 transition-colors"
+                >
+                  Read Article
+                  <ArrowRight size={16} className="ml-1" />
+                </Link>
+              </div>
+            </article>
+
+            {/* Blog Card 3 */}
+            <article className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300">
+              <div className="aspect-video bg-gradient-to-br from-blue-50 to-slate-100 relative overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <DollarSign size={48} className="text-blue-300" />
+                </div>
+                <div className="absolute top-4 left-4">
+                  <span className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
+                    Pricing Strategy
+                  </span>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center gap-4 text-sm text-slate-500 mb-3">
+                  <span>Feb 1, 2026</span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={14} />
+                    7 min read
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
+                  5 Pricing Strategies to Maximize Your Profit Margins
+                </h3>
+                <p className="text-slate-500 text-sm mb-4 line-clamp-2">
+                  Explore cost-plus pricing, target profit pricing, and market-based pricing strategies.
+                </p>
+                <Link
+                  href="/blog/pricing-strategies-for-maximum-profit"
+                  className="inline-flex items-center text-blue-600 font-semibold text-sm hover:text-blue-700 transition-colors"
+                >
+                  Read Article
+                  <ArrowRight size={16} className="ml-1" />
+                </Link>
+              </div>
+            </article>
+          </div>
+
+          {/* View All Button */}
+          <div className="text-center mt-12">
+            <Link
+              href="/blog"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-full shadow-lg transition-all transform hover:-translate-y-1"
+            >
+              View All Articles
+              <ArrowUpRight size={18} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section - Large Gradient Box */}
       <section className="py-24 px-4 sm:px-6">
+
         <div className="max-w-7xl mx-auto">
           <div className="relative rounded-3xl overflow-hidden bg-blue-600 text-white shadow-2xl shadow-blue-900/20 px-8 py-20 text-center">
             {/* Decor */}
@@ -659,6 +803,7 @@ export default async function Home() {
               <ul className="space-y-4">
                 <li><Link href="/login" className="hover:text-blue-400 transition-colors">Sign In</Link></li>
                 <li><Link href="/register" className="hover:text-blue-400 transition-colors">Sign Up</Link></li>
+                <li><Link href="/blog" className="hover:text-blue-400 transition-colors">Blog</Link></li>
               </ul>
             </div>
           </div>
