@@ -15,7 +15,11 @@ import {
     PlusCircle,
     Download,
     Users,
-    DollarSign
+    DollarSign,
+    Package,
+    Layers,
+    Settings,
+    Briefcase
 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import MaterialCostManager, { MaterialCostManagerRef } from '@/components/MaterialCostManager'
@@ -53,6 +57,12 @@ interface LaborItem {
     amount: number
 }
 
+interface OverheadItem {
+    id: string
+    description: string
+    amount: string
+}
+
 interface CostSheetFormData {
     product_id: string
     sheet_number: string
@@ -61,11 +71,14 @@ interface CostSheetFormData {
     cost_unit: 'per_unit' | 'per_batch'
     // Labor
     labor: LaborItem[]
-    // Overheads
-    factory_overhead: string
-    utilities: string
-    depreciation: string
-    other_costs: string
+    // Factory Overhead — 3 groups
+    indirect_materials: OverheadItem[]
+    indirect_labor: OverheadItem[]
+    other_indirect: OverheadItem[]
+    // Admin, Selling & Distribution — 3 groups
+    admin_costs: OverheadItem[]
+    selling_costs: OverheadItem[]
+    distribution_costs: OverheadItem[]
     notes: string
 }
 
@@ -79,6 +92,12 @@ const createLaborItem = (): LaborItem => ({
     benefits: '0',
     other_expenses: '0',
     amount: 0
+})
+
+const createOverheadItem = (): OverheadItem => ({
+    id: crypto.randomUUID(),
+    description: '',
+    amount: '0'
 })
 
 const calcGrossWages = (item: LaborItem): number => {
@@ -101,11 +120,14 @@ const emptyForm: CostSheetFormData = {
     cost_unit: 'per_unit',
     // Labor
     labor: [createLaborItem()],
-    // Overheads
-    factory_overhead: '0',
-    utilities: '0',
-    depreciation: '0',
-    other_costs: '0',
+    // Factory Overhead
+    indirect_materials: [],
+    indirect_labor: [],
+    other_indirect: [],
+    // Admin, Selling & Distribution
+    admin_costs: [],
+    selling_costs: [],
+    distribution_costs: [],
     notes: ''
 }
 
@@ -127,6 +149,8 @@ export default function CostSheetPage() {
     const [materialCostSheetId, setMaterialCostSheetId] = useState<string | null>(null)
     const [showLaborBreakdown, setShowLaborBreakdown] = useState(false)
     const [activeLaborId, setActiveLaborId] = useState<string | null>(null)
+    const [showOverheadModal, setShowOverheadModal] = useState<'indirect_materials' | 'indirect_labor' | 'other_indirect' | null>(null)
+    const [showExpenseModal, setShowExpenseModal] = useState<boolean>(false)
 
     const currency = currencySymbols[settings?.currency || 'INR'] || '₹'
     const currentSheet = currentSheetIndex >= 0 ? costSheets[currentSheetIndex] : null
@@ -152,12 +176,9 @@ export default function CostSheetPage() {
 
         const labCost = formData.labor.reduce((sum, l) => sum + l.amount, 0)
         const primeCostVal = matCost + labCost
-        const factoryOverheadVal = parseFloat(formData.factory_overhead) || 0
-        const utilitiesVal = parseFloat(formData.utilities) || 0
-        const depreciationVal = parseFloat(formData.depreciation) || 0
-        const overheadVal = factoryOverheadVal + utilitiesVal + depreciationVal
+        const overheadVal = totalOverhead
         const factoryCostVal = primeCostVal + overheadVal
-        const otherCostsVal = parseFloat(formData.other_costs) || 0
+        const otherCostsVal = totalASD
         const totalCostVal = factoryCostVal + otherCostsVal
         const qtyVal = parseInt(formData.quantity_produced) || 1
         const costPerUnitVal = qtyVal > 0 ? totalCostVal / qtyVal : totalCostVal
@@ -428,22 +449,40 @@ export default function CostSheetPage() {
                             
                             <!-- Overhead -->
                             <tr class="section-row overhead">
-                                <td colspan="4"><span class="badge">C</span>Manufacturing Overhead</td>
+                                <td colspan="4"><span class="badge">C</span>Factory Overhead</td>
                             </tr>
+                            ${formData.indirect_materials.length > 0 ? `
                             <tr>
-                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; padding-left: 30px;">1. Factory Overhead</td>
-                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${factoryOverheadVal.toFixed(2)}</td>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 11px; font-weight: 600; color: #6b21a8; padding-left: 30px; border-bottom: 1px solid #e5e7eb;">Indirect Materials</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">${currency}${totalIndirectMaterials.toFixed(2)}</td>
                             </tr>
+                            ${formData.indirect_materials.map(i => `
                             <tr>
-                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; padding-left: 30px;">2. Utilities</td>
-                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${utilitiesVal.toFixed(2)}</td>
-                            </tr>
+                                <td colspan="3" style="padding: 4px 10px; font-size: 11px; padding-left: 50px; color: #666; border-bottom: 1px solid #f3f4f6;">• ${i.description || 'Item'}</td>
+                                <td style="padding: 4px 10px; text-align: right; font-size: 11px; color: #666; border-bottom: 1px solid #f3f4f6;">${currency}${(parseFloat(i.amount) || 0).toFixed(2)}</td>
+                            </tr>`).join('')}` : ''}
+                            ${formData.indirect_labor.length > 0 ? `
                             <tr>
-                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb; padding-left: 30px;">3. Depreciation</td>
-                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${depreciationVal.toFixed(2)}</td>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 11px; font-weight: 600; color: #6b21a8; padding-left: 30px; border-bottom: 1px solid #e5e7eb;">Indirect Labor</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">${currency}${totalIndirectLabor.toFixed(2)}</td>
                             </tr>
+                            ${formData.indirect_labor.map(i => `
+                            <tr>
+                                <td colspan="3" style="padding: 4px 10px; font-size: 11px; padding-left: 50px; color: #666; border-bottom: 1px solid #f3f4f6;">• ${i.description || 'Item'}</td>
+                                <td style="padding: 4px 10px; text-align: right; font-size: 11px; color: #666; border-bottom: 1px solid #f3f4f6;">${currency}${(parseFloat(i.amount) || 0).toFixed(2)}</td>
+                            </tr>`).join('')}` : ''}
+                            ${formData.other_indirect.length > 0 ? `
+                            <tr>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 11px; font-weight: 600; color: #6b21a8; padding-left: 30px; border-bottom: 1px solid #e5e7eb;">Other Indirect Factory Costs</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">${currency}${totalOtherIndirect.toFixed(2)}</td>
+                            </tr>
+                            ${formData.other_indirect.map(i => `
+                            <tr>
+                                <td colspan="3" style="padding: 4px 10px; font-size: 11px; padding-left: 50px; color: #666; border-bottom: 1px solid #f3f4f6;">• ${i.description || 'Item'}</td>
+                                <td style="padding: 4px 10px; text-align: right; font-size: 11px; color: #666; border-bottom: 1px solid #f3f4f6;">${currency}${(parseFloat(i.amount) || 0).toFixed(2)}</td>
+                            </tr>`).join('')}` : ''}
                             <tr class="subtotal-row">
-                                <td colspan="3" style="text-align: right; color: #6b21a8;">Total Manufacturing Overhead</td>
+                                <td colspan="3" style="text-align: right; color: #6b21a8;">Total Factory Overhead</td>
                                 <td style="text-align: right; color: #6b21a8;">${currency}${overheadVal.toFixed(2)}</td>
                             </tr>
                             
@@ -455,11 +494,41 @@ export default function CostSheetPage() {
                             
                             <!-- Other Costs -->
                             <tr class="section-row other">
-                                <td colspan="4"><span class="badge">D</span>Other Costs</td>
+                                <td colspan="4"><span class="badge">D</span>Admin, Selling & Distribution</td>
                             </tr>
+                            ${formData.admin_costs.length > 0 ? `
                             <tr>
-                                <td colspan="3" style="padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #e5e7eb;">Admin, Selling & Distribution Expenses</td>
-                                <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 12px; border-bottom: 1px solid #e5e7eb;">${currency}${otherCostsVal.toFixed(2)}</td>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 11px; font-weight: 600; color: #c2410c; padding-left: 30px; border-bottom: 1px solid #e5e7eb;">Administrative Costs</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">${currency}${totalAdminCosts.toFixed(2)}</td>
+                            </tr>
+                            ${formData.admin_costs.map(i => `
+                            <tr>
+                                <td colspan="3" style="padding: 4px 10px; font-size: 11px; padding-left: 50px; color: #666; border-bottom: 1px solid #f3f4f6;">• ${i.description || 'Item'}</td>
+                                <td style="padding: 4px 10px; text-align: right; font-size: 11px; color: #666; border-bottom: 1px solid #f3f4f6;">${currency}${(parseFloat(i.amount) || 0).toFixed(2)}</td>
+                            </tr>`).join('')}` : ''}
+                            ${formData.selling_costs.length > 0 ? `
+                            <tr>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 11px; font-weight: 600; color: #c2410c; padding-left: 30px; border-bottom: 1px solid #e5e7eb;">Selling Costs</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">${currency}${totalSellingCosts.toFixed(2)}</td>
+                            </tr>
+                            ${formData.selling_costs.map(i => `
+                            <tr>
+                                <td colspan="3" style="padding: 4px 10px; font-size: 11px; padding-left: 50px; color: #666; border-bottom: 1px solid #f3f4f6;">• ${i.description || 'Item'}</td>
+                                <td style="padding: 4px 10px; text-align: right; font-size: 11px; color: #666; border-bottom: 1px solid #f3f4f6;">${currency}${(parseFloat(i.amount) || 0).toFixed(2)}</td>
+                            </tr>`).join('')}` : ''}
+                            ${formData.distribution_costs.length > 0 ? `
+                            <tr>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 11px; font-weight: 600; color: #c2410c; padding-left: 30px; border-bottom: 1px solid #e5e7eb;">Distribution Costs</td>
+                                <td style="padding: 6px 10px; text-align: right; font-size: 12px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">${currency}${totalDistributionCosts.toFixed(2)}</td>
+                            </tr>
+                            ${formData.distribution_costs.map(i => `
+                            <tr>
+                                <td colspan="3" style="padding: 4px 10px; font-size: 11px; padding-left: 50px; color: #666; border-bottom: 1px solid #f3f4f6;">• ${i.description || 'Item'}</td>
+                                <td style="padding: 4px 10px; text-align: right; font-size: 11px; color: #666; border-bottom: 1px solid #f3f4f6;">${currency}${(parseFloat(i.amount) || 0).toFixed(2)}</td>
+                            </tr>`).join('')}` : ''}
+                            <tr class="subtotal-row">
+                                <td colspan="3" style="text-align: right; color: #c2410c;">Total Admin, Selling & Distribution</td>
+                                <td style="text-align: right; color: #c2410c;">${currency}${otherCostsVal.toFixed(2)}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -599,15 +668,29 @@ export default function CostSheetPage() {
     // Calculate totals (totalMaterialCost comes from MaterialCostManager via callback)
     const totalLaborCost = formData.labor.reduce((sum, l) => sum + l.amount, 0)
     const primeCost = totalMaterialCost + totalLaborCost
-    const factoryOverhead = parseFloat(formData.factory_overhead) || 0
-    const utilities = parseFloat(formData.utilities) || 0
-    const depreciation = parseFloat(formData.depreciation) || 0
-    const totalOverhead = factoryOverhead + utilities + depreciation
+    const totalIndirectMaterials = formData.indirect_materials.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
+    const totalIndirectLabor = formData.indirect_labor.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
+    const totalOtherIndirect = formData.other_indirect.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
+    const totalOverhead = totalIndirectMaterials + totalIndirectLabor + totalOtherIndirect
     const factoryCost = primeCost + totalOverhead
-    const otherCosts = parseFloat(formData.other_costs) || 0
-    const totalCost = factoryCost + otherCosts
+    const totalAdminCosts = formData.admin_costs.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
+    const totalSellingCosts = formData.selling_costs.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
+    const totalDistributionCosts = formData.distribution_costs.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
+    const totalASD = totalAdminCosts + totalSellingCosts + totalDistributionCosts
+    const totalCost = factoryCost + totalASD
     const quantity = parseInt(formData.quantity_produced) || 1
     const costPerUnit = quantity > 0 ? totalCost / quantity : totalCost
+
+    // Overhead & expense item handlers
+    const addOverheadItem = (group: 'indirect_materials' | 'indirect_labor' | 'other_indirect' | 'admin_costs' | 'selling_costs' | 'distribution_costs') => {
+        setFormData({ ...formData, [group]: [...formData[group], createOverheadItem()] })
+    }
+    const removeOverheadItem = (group: 'indirect_materials' | 'indirect_labor' | 'other_indirect' | 'admin_costs' | 'selling_costs' | 'distribution_costs', id: string) => {
+        setFormData({ ...formData, [group]: formData[group].filter(i => i.id !== id) })
+    }
+    const updateOverheadItem = (group: 'indirect_materials' | 'indirect_labor' | 'other_indirect' | 'admin_costs' | 'selling_costs' | 'distribution_costs', id: string, field: keyof OverheadItem, value: string) => {
+        setFormData({ ...formData, [group]: formData[group].map(i => i.id === id ? { ...i, [field]: value } : i) })
+    }
 
     const getProductUnit = () => {
         const product = products.find(p => p.id === formData.product_id)
@@ -642,10 +725,12 @@ export default function CostSheetPage() {
             quantity_produced: sheet.quantity_produced.toString(),
             cost_unit: sheet.cost_unit,
             labor: [{ id: '1', description: 'Direct Labor', hours: sheet.labor_hours.toString(), rate: sheet.labor_rate.toString(), gross_wages: sheet.labor_cost.toString(), payroll_taxes: '0', benefits: '0', other_expenses: '0', amount: sheet.labor_cost }],
-            factory_overhead: sheet.overhead_cost.toString(),
-            utilities: '0',
-            depreciation: '0',
-            other_costs: sheet.other_costs.toString(),
+            indirect_materials: sheet.overhead_cost > 0 ? [{ id: '1', description: 'Factory Overhead', amount: sheet.overhead_cost.toString() }] : [],
+            indirect_labor: [],
+            other_indirect: [],
+            admin_costs: sheet.other_costs > 0 ? [{ id: '1', description: 'Admin & Distribution', amount: sheet.other_costs.toString() }] : [],
+            selling_costs: [],
+            distribution_costs: [],
             notes: sheet.notes || ''
         })
         setMaterialCostSheetId(sheet.id)
@@ -667,7 +752,7 @@ export default function CostSheetPage() {
         form.set('labor_hours', formData.labor.reduce((sum, l) => sum + (parseFloat(l.hours) || 0), 0).toString())
         form.set('labor_rate', formData.labor.length > 0 ? (totalLaborCost / Math.max(formData.labor.reduce((sum, l) => sum + (parseFloat(l.hours) || 0), 0), 1)).toString() : '0')
         form.set('overhead_cost', totalOverhead.toString())
-        form.set('other_costs', formData.other_costs)
+        form.set('other_costs', totalASD.toString())
         form.set('notes', formData.notes)
 
         let result
@@ -840,13 +925,13 @@ export default function CostSheetPage() {
 
                         {/* Cost Details Table */}
                         <div className="p-4">
-                            <table className="w-full border border-gray-300 text-sm">
+                            <table className="w-full border border-gray-200 text-sm">
                                 <thead>
-                                    <tr className="bg-gray-100">
-                                        <th className="p-2 text-left font-semibold text-gray-700 border-b border-r w-2/5">Particulars</th>
-                                        <th className="p-2 text-center font-semibold text-gray-700 border-b border-r w-20">Qty</th>
-                                        <th className="p-2 text-right font-semibold text-gray-700 border-b border-r w-28">Rate ({currency})</th>
-                                        <th className="p-2 text-right font-semibold text-gray-700 border-b w-32">Amount ({currency})</th>
+                                    <tr className="bg-slate-50">
+                                        <th className="p-2 text-left font-medium text-slate-500 border-b border-r w-2/5 uppercase tracking-wider text-xs">Particulars</th>
+                                        <th className="p-2 text-center font-medium text-slate-500 border-b border-r w-20 uppercase tracking-wider text-xs">Qty</th>
+                                        <th className="p-2 text-right font-medium text-slate-500 border-b border-r w-28 uppercase tracking-wider text-xs">Rate ({currency})</th>
+                                        <th className="p-2 text-right font-medium text-slate-500 border-b w-32 uppercase tracking-wider text-xs">Amount ({currency})</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -860,41 +945,41 @@ export default function CostSheetPage() {
                                     />
 
                                     {/* DIRECT LABOR SECTION */}
-                                    <tr className="bg-gradient-to-r from-green-50 to-green-100">
-                                        <td colSpan={5} className="p-3 font-semibold text-green-800 border-b border-green-200">
+                                    <tr className="bg-slate-100">
+                                        <td colSpan={5} className="p-3 font-semibold text-slate-800 border-b border-slate-200">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-8 h-8 bg-green-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">B</span>
-                                                    <span className="text-base">DIRECT LABOR</span>
-                                                    <span className="text-xs bg-green-200 text-green-700 px-2 py-0.5 rounded-full ml-2">{formData.labor.length} item{formData.labor.length > 1 ? 's' : ''}</span>
+                                                    <span className="w-7 h-7 bg-slate-700 text-white rounded flex items-center justify-center text-xs font-bold">B</span>
+                                                    <span className="text-sm font-bold tracking-wide uppercase">Direct Labor</span>
+                                                    <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{formData.labor.length} item{formData.labor.length > 1 ? 's' : ''}</span>
                                                 </div>
                                                 {isEditing && (
-                                                    <button type="button" onClick={addLaborItem} className="flex items-center gap-1.5 text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm">
-                                                        <PlusCircle size={16} /> Add Labor
+                                                    <button type="button" onClick={addLaborItem} className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors">
+                                                        <PlusCircle size={14} /> Add Labor
                                                     </button>
                                                 )}
                                             </div>
                                         </td>
                                     </tr>
                                     {/* Labor Column Headers */}
-                                    <tr className="bg-green-50/50">
-                                        <td colSpan={3} className="p-2 text-xs font-semibold text-green-700 border-b border-r">Description</td>
-                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r text-center">Labour Cost</td>
-                                        <td className="p-2 text-xs font-semibold text-green-700 border-b text-right w-32">Total ({currency})</td>
+                                    <tr className="bg-slate-50">
+                                        <td colSpan={3} className="p-2 text-xs font-medium text-slate-500 border-b border-r uppercase tracking-wider">Description</td>
+                                        <td className="p-2 text-xs font-medium text-slate-500 border-b border-r text-center uppercase tracking-wider">Labour Cost</td>
+                                        <td className="p-2 text-xs font-medium text-slate-500 border-b text-right w-32 uppercase tracking-wider">Total ({currency})</td>
                                     </tr>
                                     {formData.labor.map((labor, index) => (
-                                        <tr key={labor.id} className="border-b border-gray-200 hover:bg-green-50/30 transition-colors group">
+                                        <tr key={labor.id} className="border-b border-gray-100 hover:bg-slate-50 transition-colors group">
                                             {/* Description */}
                                             <td colSpan={3} className="p-2 border-r">
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2">
-                                                        <span className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
+                                                        <span className="w-5 h-5 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] font-bold">{index + 1}</span>
                                                         <input
                                                             type="text"
                                                             placeholder="Labor description..."
                                                             value={labor.description}
                                                             onChange={(e) => updateLaborItem(labor.id, 'description', e.target.value)}
-                                                            className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none transition-all text-sm"
+                                                            className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-sm"
                                                         />
                                                         {formData.labor.length > 1 && (
                                                             <button type="button" onClick={() => removeLaborItem(labor.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-all">
@@ -904,8 +989,8 @@ export default function CostSheetPage() {
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 pl-2">
-                                                        <span className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
-                                                        <Users size={14} className="text-green-400" />
+                                                        <span className="w-5 h-5 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] font-bold">{index + 1}</span>
+                                                        <Users size={14} className="text-slate-400" />
                                                         <span className="font-medium text-gray-700">{labor.description || `Labor ${index + 1}`}</span>
                                                     </div>
                                                 )}
@@ -915,7 +1000,7 @@ export default function CostSheetPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openLaborBreakdown(labor.id)}
-                                                    className="inline-flex items-center gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium shadow-sm"
+                                                    className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium"
                                                 >
                                                     <DollarSign size={14} />
                                                     Manage Labour Cost
@@ -938,14 +1023,14 @@ export default function CostSheetPage() {
                                                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowLaborBreakdown(false) }}>
                                                         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
                                                             {/* Modal Header */}
-                                                            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-5 rounded-t-2xl flex items-center justify-between">
+                                                        <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-5 rounded-t-2xl flex items-center justify-between">
                                                                 <div className="flex items-center gap-3">
                                                                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                                                                         <DollarSign size={22} />
                                                                     </div>
                                                                     <div>
                                                                         <h2 className="text-lg font-bold">Labor Cost Breakdown</h2>
-                                                                        <p className="text-green-100 text-xs">{labor.description || 'Direct Labor'}</p>
+                                                                        <p className="text-slate-300 text-xs">{labor.description || 'Direct Labor'}</p>
                                                                     </div>
                                                                 </div>
                                                                 <button type="button" onClick={() => setShowLaborBreakdown(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
@@ -956,35 +1041,35 @@ export default function CostSheetPage() {
                                                             {/* Modal Body */}
                                                             <div className="p-5 space-y-4">
                                                                 {/* Gross Wages = Hours/Pieces × Rate */}
-                                                                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                                                                    <label className="block text-xs font-semibold text-green-700 mb-2">💰 Gross Wages</label>
+                                                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                                                    <label className="block text-xs font-semibold text-slate-700 mb-2">💰 Gross Wages</label>
                                                                     <p className="text-[10px] text-gray-400 mb-2">Hours/Pieces × Rate per unit</p>
                                                                     {isEditing ? (
                                                                         <div className="grid grid-cols-3 gap-3 mt-2">
                                                                             <div>
-                                                                                <label className="block text-[10px] text-green-600 font-medium mb-1">Hours / Pieces</label>
+                                                                                <label className="block text-[10px] text-slate-600 font-medium mb-1">Hours / Pieces</label>
                                                                                 <input
                                                                                     type="number" min="0" step="0.5"
                                                                                     value={labor.hours}
                                                                                     onChange={(e) => updateLaborItem(labor.id, 'hours', e.target.value)}
-                                                                                    className="w-full px-3 py-2 border border-green-200 rounded-lg text-center bg-white focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none text-sm"
+                                                                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-center bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
                                                                                     placeholder="0"
                                                                                 />
                                                                             </div>
                                                                             <div>
-                                                                                <label className="block text-[10px] text-green-600 font-medium mb-1">Rate ({currency})</label>
+                                                                                <label className="block text-[10px] text-slate-600 font-medium mb-1">Rate ({currency})</label>
                                                                                 <input
                                                                                     type="number" min="0" step="0.01"
                                                                                     value={labor.rate}
                                                                                     onChange={(e) => updateLaborItem(labor.id, 'rate', e.target.value)}
-                                                                                    className="w-full px-3 py-2 border border-green-200 rounded-lg text-right bg-white focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none text-sm"
+                                                                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-right bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
                                                                                     placeholder="0"
                                                                                 />
                                                                             </div>
                                                                             <div>
-                                                                                <label className="block text-[10px] text-green-600 font-medium mb-1">Gross Wages</label>
-                                                                                <div className="px-3 py-2 bg-green-100 rounded-lg text-right">
-                                                                                    <span className="text-sm font-bold text-green-800">{currency}{calcGrossWages(labor).toFixed(2)}</span>
+                                                                                <label className="block text-[10px] text-slate-600 font-medium mb-1">Gross Wages</label>
+                                                                                <div className="px-3 py-2 bg-slate-100 rounded-lg text-right">
+                                                                                    <span className="text-sm font-bold text-slate-800">{currency}{calcGrossWages(labor).toFixed(2)}</span>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -997,15 +1082,15 @@ export default function CostSheetPage() {
                                                                 </div>
 
                                                                 {/* Payroll Taxes */}
-                                                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                                                                    <label className="block text-xs font-semibold text-blue-700 mb-2">🏛️ Payroll Taxes</label>
+                                                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                                                    <label className="block text-xs font-semibold text-slate-700 mb-2">🏛️ Payroll Taxes</label>
                                                                     <p className="text-[10px] text-gray-400 mb-2">PF, ESI, professional tax, social security contributions</p>
                                                                     {isEditing ? (
                                                                         <input
                                                                             type="number" min="0" step="0.01"
                                                                             value={labor.payroll_taxes}
                                                                             onChange={(e) => updateLaborItem(labor.id, 'payroll_taxes', e.target.value)}
-                                                                            className="w-full px-3 py-2.5 border border-blue-200 rounded-lg text-right bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none text-sm font-medium"
+                                                                            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-right bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm font-medium"
                                                                             placeholder="0.00"
                                                                         />
                                                                     ) : (
@@ -1014,15 +1099,15 @@ export default function CostSheetPage() {
                                                                 </div>
 
                                                                 {/* Benefits */}
-                                                                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-                                                                    <label className="block text-xs font-semibold text-purple-700 mb-2">🎁 Benefits</label>
+                                                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                                                    <label className="block text-xs font-semibold text-slate-700 mb-2">🎁 Benefits</label>
                                                                     <p className="text-[10px] text-gray-400 mb-2">Health insurance, gratuity, leave encashment, retirement</p>
                                                                     {isEditing ? (
                                                                         <input
                                                                             type="number" min="0" step="0.01"
                                                                             value={labor.benefits}
                                                                             onChange={(e) => updateLaborItem(labor.id, 'benefits', e.target.value)}
-                                                                            className="w-full px-3 py-2.5 border border-purple-200 rounded-lg text-right bg-white focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none text-sm font-medium"
+                                                                            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-right bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm font-medium"
                                                                             placeholder="0.00"
                                                                         />
                                                                     ) : (
@@ -1031,15 +1116,15 @@ export default function CostSheetPage() {
                                                                 </div>
 
                                                                 {/* Other Related Expenses */}
-                                                                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                                                                    <label className="block text-xs font-semibold text-orange-700 mb-2">📋 Other Related Expenses</label>
+                                                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                                                    <label className="block text-xs font-semibold text-slate-700 mb-2">📋 Other Related Expenses</label>
                                                                     <p className="text-[10px] text-gray-400 mb-2">Training, uniforms, safety gear, meals, transport allowance</p>
                                                                     {isEditing ? (
                                                                         <input
                                                                             type="number" min="0" step="0.01"
                                                                             value={labor.other_expenses}
                                                                             onChange={(e) => updateLaborItem(labor.id, 'other_expenses', e.target.value)}
-                                                                            className="w-full px-3 py-2.5 border border-orange-200 rounded-lg text-right bg-white focus:border-orange-400 focus:ring-1 focus:ring-orange-400 outline-none text-sm font-medium"
+                                                                            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-right bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm font-medium"
                                                                             placeholder="0.00"
                                                                         />
                                                                     ) : (
@@ -1055,13 +1140,13 @@ export default function CostSheetPage() {
                                                                         Total Labor Cost
                                                                     </div>
                                                                     <div className="flex items-center gap-4">
-                                                                        <span className="text-xl font-bold text-green-700">
+                                                                        <span className="text-xl font-bold text-slate-800">
                                                                             {currency}{labor.amount.toFixed(2)}
                                                                         </span>
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => setShowLaborBreakdown(false)}
-                                                                            className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+                                                                            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                                                                         >
                                                                             Done
                                                                         </button>
@@ -1074,130 +1159,329 @@ export default function CostSheetPage() {
                                             </tr>
                                         )
                                     })()}
-                                    <tr className="bg-green-100">
-                                        <td colSpan={4} className="p-2 text-right font-semibold text-green-800 border-b border-r">Total Direct Labor</td>
-                                        <td className="p-2 text-right font-bold text-green-800 border-b">{currency}{totalLaborCost.toFixed(2)}</td>
+                                    <tr className="bg-slate-100">
+                                        <td colSpan={4} className="p-2.5 text-right font-semibold text-slate-700 border-b border-r">Total Direct Labor (B)</td>
+                                        <td className="p-2.5 text-right font-bold text-slate-900 border-b text-base">{currency}{totalLaborCost.toFixed(2)}</td>
                                     </tr>
 
                                     {/* PRIME COST */}
-                                    <tr className="bg-indigo-100">
-                                        <td colSpan={3} className="p-3 text-right font-bold text-indigo-800 border-b border-r">PRIME COST (A + B)</td>
-                                        <td className="p-3 text-right font-bold text-indigo-800 border-b text-lg">{currency}{primeCost.toFixed(2)}</td>
+                                    <tr className="bg-slate-200">
+                                        <td colSpan={3} className="p-3 text-right font-bold text-slate-800 border-b border-r">PRIME COST (A + B)</td>
+                                        <td className="p-3 text-right font-bold text-slate-900 border-b text-base">{currency}{primeCost.toFixed(2)}</td>
                                     </tr>
 
-                                    {/* MANUFACTURING OVERHEAD */}
-                                    <tr className="bg-gradient-to-r from-purple-50 to-purple-100">
-                                        <td colSpan={5} className="p-3 font-semibold text-purple-800 border-b border-purple-200">
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-8 h-8 bg-purple-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">C</span>
-                                                <span className="text-base">MANUFACTURING OVERHEAD</span>
-                                                <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full ml-2">3 items</span>
+                                    {/* FACTORY OVERHEAD — single row with total */}
+                                    <tr className="bg-slate-100">
+                                        <td colSpan={4} className="p-3 font-semibold text-slate-800 border-b border-slate-200 border-r">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-7 h-7 bg-slate-700 text-white rounded flex items-center justify-center text-xs font-bold">C</span>
+                                                    <span className="text-sm font-bold tracking-wide uppercase">Factory Overhead</span>
+                                                    {(formData.indirect_materials.length + formData.indirect_labor.length + formData.other_indirect.length) > 0 && (
+                                                        <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                                            {formData.indirect_materials.length + formData.indirect_labor.length + formData.other_indirect.length} items
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowOverheadModal('indirect_materials')}
+                                                    className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium"
+                                                >
+                                                    <Settings size={14} /> Manage Factory Overhead
+                                                </button>
                                             </div>
                                         </td>
-                                    </tr>
-                                    {/* Factory Overhead */}
-                                    <tr className="border-b border-gray-200 hover:bg-purple-50/30">
-                                        <td colSpan={4} className="p-2 border-r">
-                                            <div className="flex items-center gap-2 pl-2">
-                                                <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded flex items-center justify-center text-xs font-medium">1</span>
-                                                <span className="font-medium text-gray-700">Factory Overhead</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={formData.factory_overhead}
-                                                    onChange={(e) => setFormData({ ...formData, factory_overhead: e.target.value })}
-                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none"
-                                                />
-                                            ) : <span className="font-medium">{currency}{parseFloat(formData.factory_overhead).toFixed(2)}</span>}
+                                        <td className="p-3 text-right font-bold text-slate-900 border-b border-slate-200 text-base">
+                                            {currency}{totalOverhead.toFixed(2)}
                                         </td>
                                     </tr>
-                                    {/* Utilities */}
-                                    <tr className="border-b border-gray-200 hover:bg-purple-50/30">
-                                        <td colSpan={4} className="p-2 border-r">
-                                            <div className="flex items-center gap-2 pl-2">
-                                                <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded flex items-center justify-center text-xs font-medium">2</span>
-                                                <span className="font-medium text-gray-700">Utilities</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={formData.utilities}
-                                                    onChange={(e) => setFormData({ ...formData, utilities: e.target.value })}
-                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none"
-                                                />
-                                            ) : <span className="font-medium">{currency}{parseFloat(formData.utilities).toFixed(2)}</span>}
-                                        </td>
-                                    </tr>
-                                    {/* Depreciation */}
-                                    <tr className="border-b border-gray-200 hover:bg-purple-50/30">
-                                        <td colSpan={4} className="p-2 border-r">
-                                            <div className="flex items-center gap-2 pl-2">
-                                                <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded flex items-center justify-center text-xs font-medium">3</span>
-                                                <span className="font-medium text-gray-700">Depreciation</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={formData.depreciation}
-                                                    onChange={(e) => setFormData({ ...formData, depreciation: e.target.value })}
-                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none"
-                                                />
-                                            ) : <span className="font-medium">{currency}{parseFloat(formData.depreciation).toFixed(2)}</span>}
-                                        </td>
-                                    </tr>
+
+                                    {/* ═══════════════════════════════════════════ */}
+                                    {/* UNIFIED FACTORY OVERHEAD POPUP MODAL       */}
+                                    {/* ═══════════════════════════════════════════ */}
+                                    {showOverheadModal && (() => {
+                                        const allGroups: { key: 'indirect_materials' | 'indirect_labor' | 'other_indirect'; title: string; icon: string; examples: string; color: string }[] = [
+                                            { key: 'indirect_materials', title: 'Indirect Materials', icon: '📦', examples: 'e.g., Lubricants, Cleaning supplies, Gloves, Small tools', color: 'purple' },
+                                            { key: 'indirect_labor', title: 'Indirect Labor', icon: '👷', examples: 'e.g., Supervisor salary, Security, Maintenance staff', color: 'violet' },
+                                            { key: 'other_indirect', title: 'Other Indirect Factory Costs', icon: '🏭', examples: 'e.g., Rent, Utilities, Depreciation, Insurance, Repairs', color: 'fuchsia' }
+                                        ]
+                                        return (
+                                            <tr>
+                                                <td colSpan={5} className="p-0">
+                                                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowOverheadModal(null) }}>
+                                                        <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                                                            {/* Modal Header */}
+                                                            <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-5 rounded-t-2xl flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">🏭</div>
+                                                                    <div>
+                                                                        <h2 className="text-lg font-bold">Factory Overhead</h2>
+                                                                        <p className="text-slate-300 text-xs">Manage all indirect factory costs</p>
+                                                                    </div>
+                                                                </div>
+                                                                <button type="button" onClick={() => setShowOverheadModal(null)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                                                                    <X size={20} />
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Modal Body — 3 Sections */}
+                                                            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                                                                {allGroups.map((group) => {
+                                                                    const items = formData[group.key]
+                                                                    const subtotal = items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
+                                                                    return (
+                                                                        <div key={group.key} className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+                                                                            {/* Section Header */}
+                                                                            <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="text-lg">{group.icon}</span>
+                                                                                    <span className="font-semibold text-slate-700 text-sm">{group.title}</span>
+                                                                                    {items.length > 0 && (
+                                                                                        <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">{items.length}</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="text-sm font-bold text-slate-700">{currency}{subtotal.toFixed(2)}</span>
+                                                                                    {isEditing && (
+                                                                                        <button type="button" onClick={() => addOverheadItem(group.key)} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-lg transition-colors">
+                                                                                            <PlusCircle size={14} />
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                            {/* Section Items */}
+                                                                            <div className="p-3 space-y-2">
+                                                                                {items.length === 0 ? (
+                                                                                    <p className="text-xs text-gray-400 text-center py-2">{group.examples}</p>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        {items.map((item, index) => (
+                                                                                            <div key={item.id} className="flex items-center gap-2 group">
+                                                                                                <span className="w-5 h-5 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] font-bold shrink-0">{index + 1}</span>
+                                                                                                {isEditing ? (
+                                                                                                    <>
+                                                                                                        <input
+                                                                                                            type="text"
+                                                                                                            placeholder="Description..."
+                                                                                                            value={item.description}
+                                                                                                            onChange={(e) => updateOverheadItem(group.key, item.id, 'description', e.target.value)}
+                                                                                                            className="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-white"
+                                                                                                        />
+                                                                                                        <input
+                                                                                                            type="number" min="0" step="0.01"
+                                                                                                            value={item.amount}
+                                                                                                            onChange={(e) => updateOverheadItem(group.key, item.id, 'amount', e.target.value)}
+                                                                                                            className="w-24 px-2.5 py-1.5 border border-gray-200 rounded-lg text-right bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm font-medium"
+                                                                                                            placeholder="0.00"
+                                                                                                        />
+                                                                                                        <button type="button" onClick={() => removeOverheadItem(group.key, item.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-1 rounded transition-all shrink-0">
+                                                                                                            <Trash2 size={14} />
+                                                                                                        </button>
+                                                                                                    </>
+                                                                                                ) : (
+                                                                                                    <>
+                                                                                                        <span className="flex-1 text-sm text-gray-700">{item.description || `Item ${index + 1}`}</span>
+                                                                                                        <span className="text-sm font-semibold text-gray-800">{currency}{(parseFloat(item.amount) || 0).toFixed(2)}</span>
+                                                                                                    </>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+
+                                                            {/* Modal Footer */}
+                                                            <div className="border-t border-gray-200 p-5 bg-gray-50 rounded-b-2xl">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="text-sm text-gray-500">
+                                                                        {formData.indirect_materials.length + formData.indirect_labor.length + formData.other_indirect.length} total items
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4">
+                                                                        <span className="text-xl font-bold text-slate-800">{currency}{totalOverhead.toFixed(2)}</span>
+                                                                        <button type="button" onClick={() => setShowOverheadModal(null)} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Done</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })()}
+
                                     {/* Total Manufacturing Overhead */}
-                                    <tr className="bg-gradient-to-r from-purple-100 to-purple-200">
-                                        <td colSpan={4} className="p-3 text-right font-semibold text-purple-800 border-b border-r">
-                                            <span className="flex items-center justify-end gap-2">
-                                                Total Manufacturing Overhead
-                                                <span className="text-xs bg-purple-300 text-purple-800 px-2 py-0.5 rounded-full">3 items</span>
-                                            </span>
+                                    <tr className="bg-slate-100">
+                                        <td colSpan={4} className="p-2.5 text-right font-semibold text-slate-700 border-b border-r">
+                                            Total Factory Overhead (C)
                                         </td>
-                                        <td className="p-3 text-right font-bold text-purple-900 border-b text-lg">{currency}{totalOverhead.toFixed(2)}</td>
+                                        <td className="p-2.5 text-right font-bold text-slate-900 border-b text-base">{currency}{totalOverhead.toFixed(2)}</td>
                                     </tr>
 
                                     {/* FACTORY COST */}
-                                    <tr className="bg-purple-100">
-                                        <td colSpan={3} className="p-3 text-right font-bold text-purple-800 border-b border-r">FACTORY COST (Prime + C)</td>
-                                        <td className="p-3 text-right font-bold text-purple-800 border-b text-lg">{currency}{factoryCost.toFixed(2)}</td>
+                                    <tr className="bg-slate-200">
+                                        <td colSpan={3} className="p-3 text-right font-bold text-slate-800 border-b border-r">FACTORY COST (Prime + C)</td>
+                                        <td className="p-3 text-right font-bold text-slate-900 border-b text-base">{currency}{factoryCost.toFixed(2)}</td>
                                     </tr>
 
-                                    {/* OTHER COSTS */}
-                                    <tr className="bg-orange-50">
-                                        <td colSpan={4} className="p-2 font-semibold text-orange-800 border-b">D. OTHER COSTS</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-200">
-                                        <td colSpan={3} className="p-2 pl-8 border-r">Administrative, Selling & Distribution Expenses</td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input type="number" min="0" step="0.01" value={formData.other_costs} onChange={(e) => setFormData({ ...formData, other_costs: e.target.value })} className="w-full px-2 py-1 border rounded text-right" />
-                                            ) : <span className="font-medium">{currency}{parseFloat(formData.other_costs).toFixed(2)}</span>}
+                                    {/* ADMIN, SELLING & DISTRIBUTION EXPENSES — single row with total */}
+                                    <tr className="bg-slate-100">
+                                        <td colSpan={4} className="p-3 font-semibold text-slate-800 border-b border-slate-200 border-r">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-7 h-7 bg-slate-700 text-white rounded flex items-center justify-center text-xs font-bold">D</span>
+                                                    <span className="text-sm font-bold tracking-wide uppercase">Admin, Selling & Distribution</span>
+                                                    {(formData.admin_costs.length + formData.selling_costs.length + formData.distribution_costs.length) > 0 && (
+                                                        <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                                            {formData.admin_costs.length + formData.selling_costs.length + formData.distribution_costs.length} items
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowExpenseModal(true)}
+                                                    className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium"
+                                                >
+                                                    <Briefcase size={14} /> Manage Expenses
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className="p-3 text-right font-bold text-slate-900 border-b border-slate-200 text-base">
+                                            {currency}{totalASD.toFixed(2)}
                                         </td>
                                     </tr>
 
+                                    {/* ═══════════════════════════════════════════ */}
+                                    {/* UNIFIED ADMIN/SELLING/DISTRIBUTION POPUP   */}
+                                    {/* ═══════════════════════════════════════════ */}
+                                    {showExpenseModal && (() => {
+                                        const expenseGroups: { key: 'admin_costs' | 'selling_costs' | 'distribution_costs'; title: string; icon: string; examples: string }[] = [
+                                            { key: 'admin_costs', title: 'Administrative Costs', icon: '🏢', examples: 'e.g., Office rent, Stationery, Accounting, Legal fees' },
+                                            { key: 'selling_costs', title: 'Selling Costs', icon: '📊', examples: 'e.g., Advertising, Sales commission, Packaging, Showroom' },
+                                            { key: 'distribution_costs', title: 'Distribution Costs', icon: '🚚', examples: 'e.g., Freight, Warehousing, Delivery charges, Insurance' }
+                                        ]
+                                        return (
+                                            <tr>
+                                                <td colSpan={5} className="p-0">
+                                                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowExpenseModal(false) }}>
+                                                        <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                                                            {/* Modal Header */}
+                                                            <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-5 rounded-t-2xl flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">💼</div>
+                                                                    <div>
+                                                                        <h2 className="text-lg font-bold">Admin, Selling & Distribution</h2>
+                                                                        <p className="text-slate-300 text-xs">Manage all non-manufacturing expenses</p>
+                                                                    </div>
+                                                                </div>
+                                                                <button type="button" onClick={() => setShowExpenseModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                                                                    <X size={20} />
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Modal Body — 3 Sections */}
+                                                            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                                                                {expenseGroups.map((group) => {
+                                                                    const items = formData[group.key]
+                                                                    const subtotal = items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
+                                                                    return (
+                                                                        <div key={group.key} className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+                                                                            {/* Section Header */}
+                                                                            <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="text-lg">{group.icon}</span>
+                                                                                    <span className="font-semibold text-slate-700 text-sm">{group.title}</span>
+                                                                                    {items.length > 0 && (
+                                                                                        <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">{items.length}</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="text-sm font-bold text-slate-700">{currency}{subtotal.toFixed(2)}</span>
+                                                                                    {isEditing && (
+                                                                                        <button type="button" onClick={() => addOverheadItem(group.key)} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-lg transition-colors">
+                                                                                            <PlusCircle size={14} />
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                            {/* Section Items */}
+                                                                            <div className="p-3 space-y-2">
+                                                                                {items.length === 0 ? (
+                                                                                    <p className="text-xs text-gray-400 text-center py-2">{group.examples}</p>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        {items.map((item, index) => (
+                                                                                            <div key={item.id} className="flex items-center gap-2 group">
+                                                                                                <span className="w-5 h-5 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] font-bold shrink-0">{index + 1}</span>
+                                                                                                {isEditing ? (
+                                                                                                    <>
+                                                                                                        <input
+                                                                                                            type="text"
+                                                                                                            placeholder="Description..."
+                                                                                                            value={item.description}
+                                                                                                            onChange={(e) => updateOverheadItem(group.key, item.id, 'description', e.target.value)}
+                                                                                                            className="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-white"
+                                                                                                        />
+                                                                                                        <input
+                                                                                                            type="number" min="0" step="0.01"
+                                                                                                            value={item.amount}
+                                                                                                            onChange={(e) => updateOverheadItem(group.key, item.id, 'amount', e.target.value)}
+                                                                                                            className="w-24 px-2.5 py-1.5 border border-gray-200 rounded-lg text-right bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm font-medium"
+                                                                                                            placeholder="0.00"
+                                                                                                        />
+                                                                                                        <button type="button" onClick={() => removeOverheadItem(group.key, item.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-1 rounded transition-all shrink-0">
+                                                                                                            <Trash2 size={14} />
+                                                                                                        </button>
+                                                                                                    </>
+                                                                                                ) : (
+                                                                                                    <>
+                                                                                                        <span className="flex-1 text-sm text-gray-700">{item.description || `Item ${index + 1}`}</span>
+                                                                                                        <span className="text-sm font-semibold text-gray-800">{currency}{(parseFloat(item.amount) || 0).toFixed(2)}</span>
+                                                                                                    </>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+
+                                                            {/* Modal Footer */}
+                                                            <div className="border-t border-gray-200 p-5 bg-gray-50 rounded-b-2xl">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="text-sm text-gray-500">
+                                                                        {formData.admin_costs.length + formData.selling_costs.length + formData.distribution_costs.length} total items
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4">
+                                                                        <span className="text-xl font-bold text-slate-800">{currency}{totalASD.toFixed(2)}</span>
+                                                                        <button type="button" onClick={() => setShowExpenseModal(false)} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Done</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })()}
+
                                     {/* TOTAL COST */}
-                                    <tr className="bg-gray-800 text-white">
-                                        <td colSpan={3} className="p-4 font-bold text-lg">TOTAL COST OF PRODUCTION</td>
-                                        <td className="p-4 text-right font-bold text-xl">{currency}{totalCost.toFixed(2)}</td>
+                                    <tr className="bg-slate-800 text-white">
+                                        <td colSpan={3} className="p-4 font-bold text-base">TOTAL COST OF PRODUCTION</td>
+                                        <td className="p-4 text-right font-bold text-lg">{currency}{totalCost.toFixed(2)}</td>
                                     </tr>
 
                                     {/* COST PER UNIT */}
-                                    <tr className="bg-green-600 text-white">
-                                        <td colSpan={3} className="p-4 font-bold text-lg">COST PER UNIT</td>
-                                        <td className="p-4 text-right font-bold text-xl">{currency}{costPerUnit.toFixed(2)}</td>
+                                    <tr className="bg-blue-600 text-white">
+                                        <td colSpan={3} className="p-4 font-bold text-base">COST PER UNIT</td>
+                                        <td className="p-4 text-right font-bold text-lg">{currency}{costPerUnit.toFixed(2)}</td>
                                     </tr>
                                 </tbody>
                             </table>

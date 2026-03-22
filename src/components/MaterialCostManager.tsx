@@ -267,13 +267,13 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                 {/* ═══════════════════════════════════════════ */}
 
                 {/* Section Header */}
-                <tr className="bg-gradient-to-r from-blue-50 to-blue-100">
-                    <td colSpan={5} className="p-3 font-semibold text-blue-800 border-b border-blue-200">
+                <tr className="bg-slate-100">
+                    <td colSpan={5} className="p-3 font-semibold text-slate-800 border-b border-slate-200">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <span className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">A</span>
-                                <span className="text-base">DIRECT MATERIALS</span>
-                                <span className="text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full ml-2">
+                                <span className="w-7 h-7 bg-slate-700 text-white rounded flex items-center justify-center text-xs font-bold">A</span>
+                                <span className="text-sm font-bold tracking-wide uppercase">Direct Materials</span>
+                                <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
                                     {materials.filter(m => m.name.trim() !== '').length} item{materials.filter(m => m.name.trim() !== '').length !== 1 ? 's' : ''}
                                 </span>
                             </div>
@@ -281,9 +281,9 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                                 <button
                                     type="button"
                                     onClick={addMaterial}
-                                    className="flex items-center gap-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                                    className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
                                 >
-                                    <PlusCircle size={16} /> Add Material
+                                    <PlusCircle size={14} /> Add Material
                                 </button>
                             )}
                         </div>
@@ -291,20 +291,20 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                 </tr>
 
                 {/* Column Headers — simplified: Name | Manage | Cost */}
-                <tr className="bg-blue-50/50">
-                    <td colSpan={3} className="p-2 text-xs font-semibold text-blue-700 border-b border-r">Material Name</td>
-                    <td className="p-2 text-xs font-semibold text-blue-700 border-b border-r text-center">Material Cost</td>
-                    <td className="p-2 text-xs font-semibold text-blue-700 border-b text-right w-32">Amount ({currency})</td>
+                <tr className="bg-slate-50">
+                    <td colSpan={3} className="p-2 text-xs font-medium text-slate-500 border-b border-r uppercase tracking-wider">Material Name</td>
+                    <td className="p-2 text-xs font-medium text-slate-500 border-b border-r text-center uppercase tracking-wider">Material Cost</td>
+                    <td className="p-2 text-xs font-medium text-slate-500 border-b text-right w-32 uppercase tracking-wider">Amount ({currency})</td>
                 </tr>
 
                 {/* Material Rows — compact: Name + Manage button + Total */}
                 {materials.map((material, index) => (
-                    <tr key={material.id} className="border-b border-gray-200 hover:bg-blue-50/30 transition-colors group">
+                    <tr key={material.id} className="border-b border-gray-100 hover:bg-slate-50 transition-colors group">
                         {/* Name */}
                         <td colSpan={3} className="p-2 border-r">
                             {isEditing ? (
                                 <div className="flex items-center gap-2">
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium shrink-0">
+                                    <span className="w-5 h-5 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] font-bold shrink-0">
                                         {index + 1}
                                     </span>
                                     <input
@@ -312,7 +312,7 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                                         placeholder="Material name..."
                                         value={material.name}
                                         onChange={(e) => updateMaterial(material.id, 'name', e.target.value)}
-                                        className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-all text-sm"
+                                        className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-sm"
                                     />
                                     {materials.length > 1 && (
                                         <button
@@ -326,10 +326,10 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2 pl-2">
-                                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">
+                                    <span className="w-5 h-5 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] font-bold">
                                         {index + 1}
                                     </span>
-                                    <Package size={14} className="text-blue-400" />
+                                    <Package size={14} className="text-slate-400" />
                                     <span className="font-medium text-gray-700">{material.name || `Material ${index + 1}`}</span>
                                     {material.part_number && (
                                         <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><Hash size={9} />{material.part_number}</span>
@@ -346,7 +346,7 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                             <button
                                 type="button"
                                 onClick={() => openMaterialDetail(material.id)}
-                                className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium shadow-sm"
+                                className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium"
                             >
                                 <Settings size={14} />
                                 Manage Material Cost
@@ -361,11 +361,11 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                 ))}
 
                 {/* Gross Material Cost */}
-                <tr className="bg-blue-50">
-                    <td colSpan={4} className="p-2 text-right font-semibold text-blue-700 border-b border-r text-sm">
+                <tr className="bg-slate-50">
+                    <td colSpan={4} className="p-2 text-right font-semibold text-slate-600 border-b border-r text-sm">
                         Gross Material Cost
                     </td>
-                    <td className="p-2 text-right font-bold text-blue-800 border-b">
+                    <td className="p-2 text-right font-bold text-slate-800 border-b">
                         {currency}{grossMaterialCost.toFixed(2)}
                     </td>
                 </tr>
@@ -373,14 +373,14 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                 {/* ═══════════════════════════════════════════ */}
                 {/* SCRAP VALUE — Summary row + popup button   */}
                 {/* ═══════════════════════════════════════════ */}
-                <tr className="bg-amber-50/80 border-b border-amber-200">
+                <tr className="bg-slate-50 border-b border-slate-200">
                     <td colSpan={4} className="p-2 border-r">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Recycle size={16} className="text-amber-600" />
-                                <span className="text-sm font-medium text-amber-800">Less: Scrap / Wastage Value</span>
+                                <Recycle size={15} className="text-slate-500" />
+                                <span className="text-sm font-medium text-slate-700">Less: Scrap / Wastage Value</span>
                                 {validScrapCount > 0 && (
-                                    <span className="text-xs bg-amber-200 text-amber-700 px-2 py-0.5 rounded-full">
+                                    <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
                                         {validScrapCount} item{validScrapCount !== 1 ? 's' : ''}
                                     </span>
                                 )}
@@ -388,28 +388,25 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                             <button
                                 type="button"
                                 onClick={() => setShowScrapModal(true)}
-                                className="flex items-center gap-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                                className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
                             >
                                 <Recycle size={14} /> {validScrapCount > 0 ? 'Manage Scrap' : 'Add Scrap'}
                             </button>
                         </div>
                     </td>
-                    <td className="p-2 text-right font-bold text-amber-800">
+                    <td className="p-2 text-right font-bold text-red-600">
                         {totalScrapValue > 0 ? `−${currency}${totalScrapValue.toFixed(2)}` : `${currency}0.00`}
                     </td>
                 </tr>
 
                 {/* NET MATERIAL COST TOTAL */}
-                <tr className="bg-gradient-to-r from-blue-100 to-blue-200">
-                    <td colSpan={4} className="p-3 text-right font-semibold text-blue-800 border-b border-r">
+                <tr className="bg-slate-100">
+                    <td colSpan={4} className="p-2.5 text-right font-semibold text-slate-700 border-b border-r">
                         <span className="flex items-center justify-end gap-2">
-                            Net Direct Materials
-                            <span className="text-xs bg-blue-300 text-blue-800 px-2 py-0.5 rounded-full">
-                                {materials.filter(m => m.name.trim() !== '').length} items
-                            </span>
+                            Net Direct Materials (A)
                         </span>
                     </td>
-                    <td className="p-3 text-right font-bold text-blue-900 border-b text-lg">
+                    <td className="p-2.5 text-right font-bold text-slate-900 border-b text-base">
                         {currency}{netMaterialCost.toFixed(2)}
                     </td>
                 </tr>
@@ -423,14 +420,14 @@ const MaterialCostManager = forwardRef<MaterialCostManagerRef, MaterialCostManag
                             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowMaterialModal(false) }}>
                                 <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
                                     {/* Modal Header */}
-                                    <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-5 rounded-t-2xl flex items-center justify-between">
+                                    <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-5 rounded-t-2xl flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                                                 <Package size={22} />
                                             </div>
                                             <div>
                                                 <h2 className="text-lg font-bold">Material Cost Details</h2>
-                                                <p className="text-blue-100 text-xs">{activeMaterial.name || 'New Material'}</p>
+                                                <p className="text-slate-300 text-xs">{activeMaterial.name || 'New Material'}</p>
                                             </div>
                                         </div>
                                         <button type="button" onClick={() => setShowMaterialModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
