@@ -109,78 +109,86 @@ export default function ReportsPage() {
 
                     {/* Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
+                        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
                             <div className="flex items-center gap-2 mb-2">
-                                <FileText size={20} />
-                                <span className="text-blue-100">Cost Sheets</span>
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                    <FileText size={20} />
+                                </div>
+                                <span className="text-slate-600 font-medium">Cost Sheets</span>
                             </div>
-                            <div className="text-3xl font-bold">{totalCostSheets}</div>
+                            <div className="text-2xl font-bold text-slate-800">{totalCostSheets}</div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-white">
+                        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
                             <div className="flex items-center gap-2 mb-2">
-                                <Package size={20} />
-                                <span className="text-green-100">Products</span>
+                                <div className="p-2 bg-slate-50 text-slate-600 rounded-lg">
+                                    <Package size={20} />
+                                </div>
+                                <span className="text-slate-600 font-medium">Products</span>
                             </div>
-                            <div className="text-3xl font-bold">{totalProducts}</div>
+                            <div className="text-2xl font-bold text-slate-800">{totalProducts}</div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white">
+                        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
                             <div className="flex items-center gap-2 mb-2">
-                                <DollarSign size={20} />
-                                <span className="text-purple-100">Total Cost Value</span>
+                                <div className="p-2 bg-slate-50 text-slate-600 rounded-lg">
+                                    <DollarSign size={20} />
+                                </div>
+                                <span className="text-slate-600 font-medium">Total Value</span>
                             </div>
-                            <div className="text-2xl font-bold">{currency}{totalCostValue.toLocaleString()}</div>
+                            <div className="text-2xl font-bold text-slate-800">{currency}{totalCostValue.toLocaleString()}</div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white">
+                        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
                             <div className="flex items-center gap-2 mb-2">
-                                <TrendingUp size={20} />
-                                <span className="text-orange-100">Avg Cost/Unit</span>
+                                <div className="p-2 bg-slate-50 text-slate-600 rounded-lg">
+                                    <TrendingUp size={20} />
+                                </div>
+                                <span className="text-slate-600 font-medium">Avg Cost/Unit</span>
                             </div>
-                            <div className="text-2xl font-bold">{currency}{avgCostPerUnit.toFixed(2)}</div>
+                            <div className="text-2xl font-bold text-slate-800">{currency}{avgCostPerUnit.toFixed(2)}</div>
                         </div>
                     </div>
 
                     {/* Cost Breakdown */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                            <BarChart3 size={20} />
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+                        <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                            <BarChart3 size={20} className="text-blue-600" />
                             Cost Breakdown (All Sheets)
                         </h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-blue-50 rounded-lg p-4 text-center">
-                                <div className="text-sm text-blue-600 mb-1">Materials</div>
-                                <div className="text-xl font-bold text-blue-800">{currency}{totalMaterials.toLocaleString()}</div>
+                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 text-center">
+                                <div className="text-sm font-medium text-slate-500 mb-1">Materials</div>
+                                <div className="text-xl font-bold text-slate-800">{currency}{totalMaterials.toLocaleString()}</div>
                             </div>
-                            <div className="bg-green-50 rounded-lg p-4 text-center">
-                                <div className="text-sm text-green-600 mb-1">Labour</div>
-                                <div className="text-xl font-bold text-green-800">{currency}{totalLabor.toLocaleString()}</div>
+                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 text-center">
+                                <div className="text-sm font-medium text-slate-500 mb-1">Labour</div>
+                                <div className="text-xl font-bold text-slate-800">{currency}{totalLabor.toLocaleString()}</div>
                             </div>
-                            <div className="bg-purple-50 rounded-lg p-4 text-center">
-                                <div className="text-sm text-purple-600 mb-1">Overhead</div>
-                                <div className="text-xl font-bold text-purple-800">{currency}{totalOverhead.toLocaleString()}</div>
+                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 text-center">
+                                <div className="text-sm font-medium text-slate-500 mb-1">Overhead</div>
+                                <div className="text-xl font-bold text-slate-800">{currency}{totalOverhead.toLocaleString()}</div>
                             </div>
-                            <div className="bg-orange-50 rounded-lg p-4 text-center">
-                                <div className="text-sm text-orange-600 mb-1">Other</div>
-                                <div className="text-xl font-bold text-orange-800">{currency}{totalOther.toLocaleString()}</div>
+                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 text-center">
+                                <div className="text-sm font-medium text-slate-500 mb-1">Other (ASD)</div>
+                                <div className="text-xl font-bold text-slate-800">{currency}{totalOther.toLocaleString()}</div>
                             </div>
                         </div>
                     </div>
 
                     {/* Cost Sheets Table */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="bg-gradient-to-r from-gray-700 to-gray-800 text-white p-4 flex justify-between items-center">
-                            <h2 className="text-lg font-semibold flex items-center gap-2">
-                                <FileText size={20} />
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center">
+                            <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                                <FileText size={20} className="text-blue-600" />
                                 All Cost Sheets
                             </h2>
-                            <span className="text-sm text-gray-300">{costSheets.length} records</span>
+                            <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">{costSheets.length} records</span>
                         </div>
 
                         {costSheets.length === 0 ? (
-                            <div className="p-8 text-center text-gray-500">
-                                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <div className="p-8 text-center text-slate-500">
+                                <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                                 <p>No cost sheets found</p>
                                 <button
                                     onClick={() => router.push('/cost-sheet')}
@@ -192,39 +200,39 @@ export default function ReportsPage() {
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-gray-50">
+                                    <thead className="bg-slate-50 border-b border-slate-100">
                                         <tr>
-                                            <th className="p-3 text-left font-semibold text-gray-700">Sheet #</th>
-                                            <th className="p-3 text-left font-semibold text-gray-700">Product</th>
-                                            <th className="p-3 text-left font-semibold text-gray-700">Date</th>
-                                            <th className="p-3 text-right font-semibold text-gray-700">Qty</th>
-                                            <th className="p-3 text-right font-semibold text-gray-700">Materials</th>
-                                            <th className="p-3 text-right font-semibold text-gray-700">Labour</th>
-                                            <th className="p-3 text-right font-semibold text-gray-700">Overhead</th>
-                                            <th className="p-3 text-right font-semibold text-gray-700">Total Cost</th>
-                                            <th className="p-3 text-right font-semibold text-gray-700">Cost/Unit</th>
-                                            <th className="p-3 text-center font-semibold text-gray-700">Action</th>
+                                            <th className="p-4 text-left font-semibold text-slate-600">Sheet #</th>
+                                            <th className="p-4 text-left font-semibold text-slate-600">Product</th>
+                                            <th className="p-4 text-left font-semibold text-slate-600">Date</th>
+                                            <th className="p-4 text-right font-semibold text-slate-600">Qty</th>
+                                            <th className="p-4 text-right font-semibold text-slate-600">Materials</th>
+                                            <th className="p-4 text-right font-semibold text-slate-600">Labour</th>
+                                            <th className="p-4 text-right font-semibold text-slate-600">Overhead</th>
+                                            <th className="p-4 text-right font-semibold text-slate-600">Total Cost</th>
+                                            <th className="p-4 text-right font-semibold text-slate-600">Cost/Unit</th>
+                                            <th className="p-4 text-center font-semibold text-slate-600">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {costSheets.map((sheet, index) => (
-                                            <tr key={sheet.id} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}>
-                                                <td className="p-3 font-medium text-gray-800">{sheet.sheet_number}</td>
-                                                <td className="p-3 text-gray-600">{sheet.product?.name || '-'}</td>
-                                                <td className="p-3 text-gray-600 flex items-center gap-1">
+                                    <tbody className="divide-y divide-slate-100">
+                                        {costSheets.map((sheet) => (
+                                            <tr key={sheet.id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="p-4 font-medium text-slate-800">{sheet.sheet_number}</td>
+                                                <td className="p-4 text-slate-600">{sheet.product?.name || '-'}</td>
+                                                <td className="p-4 text-slate-500 flex items-center gap-1">
                                                     <Calendar size={14} />
                                                     {sheet.date}
                                                 </td>
-                                                <td className="p-3 text-right text-gray-700">{sheet.quantity_produced}</td>
-                                                <td className="p-3 text-right text-blue-600">{currency}{(sheet.material_cost || 0).toFixed(2)}</td>
-                                                <td className="p-3 text-right text-green-600">{currency}{(sheet.labor_cost || 0).toFixed(2)}</td>
-                                                <td className="p-3 text-right text-purple-600">{currency}{(sheet.overhead_cost || 0).toFixed(2)}</td>
-                                                <td className="p-3 text-right font-bold text-gray-800">{currency}{(sheet.total_cost || 0).toFixed(2)}</td>
-                                                <td className="p-3 text-right font-semibold text-orange-600">{currency}{(sheet.cost_per_unit || 0).toFixed(2)}</td>
-                                                <td className="p-3 text-center">
+                                                <td className="p-4 text-right text-slate-600">{sheet.quantity_produced}</td>
+                                                <td className="p-4 text-right text-slate-600">{currency}{(sheet.material_cost || 0).toFixed(2)}</td>
+                                                <td className="p-4 text-right text-slate-600">{currency}{(sheet.labor_cost || 0).toFixed(2)}</td>
+                                                <td className="p-4 text-right text-slate-600">{currency}{(sheet.overhead_cost || 0).toFixed(2)}</td>
+                                                <td className="p-4 text-right font-semibold text-slate-800">{currency}{(sheet.total_cost || 0).toFixed(2)}</td>
+                                                <td className="p-4 text-right font-medium text-blue-600">{currency}{(sheet.cost_per_unit || 0).toFixed(2)}</td>
+                                                <td className="p-4 text-center">
                                                     <button
                                                         onClick={() => router.push('/cost-sheet')}
-                                                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                         title="View"
                                                     >
                                                         <Eye size={16} />
@@ -233,13 +241,13 @@ export default function ReportsPage() {
                                             </tr>
                                         ))}
                                     </tbody>
-                                    <tfoot className="bg-gray-100 font-semibold">
+                                    <tfoot className="bg-slate-50 border-t border-slate-200 font-semibold text-slate-700">
                                         <tr>
-                                            <td colSpan={4} className="p-3 text-right">Totals:</td>
-                                            <td className="p-3 text-right text-blue-700">{currency}{totalMaterials.toFixed(2)}</td>
-                                            <td className="p-3 text-right text-green-700">{currency}{totalLabor.toFixed(2)}</td>
-                                            <td className="p-3 text-right text-purple-700">{currency}{totalOverhead.toFixed(2)}</td>
-                                            <td className="p-3 text-right text-gray-900">{currency}{totalCostValue.toFixed(2)}</td>
+                                            <td colSpan={4} className="p-4 text-right text-slate-500">Totals:</td>
+                                            <td className="p-4 text-right">{currency}{totalMaterials.toFixed(2)}</td>
+                                            <td className="p-4 text-right">{currency}{totalLabor.toFixed(2)}</td>
+                                            <td className="p-4 text-right">{currency}{totalOverhead.toFixed(2)}</td>
+                                            <td className="p-4 text-right text-slate-900">{currency}{totalCostValue.toFixed(2)}</td>
                                             <td colSpan={2}></td>
                                         </tr>
                                     </tfoot>
@@ -250,34 +258,34 @@ export default function ReportsPage() {
 
                     {/* Product-wise Summary */}
                     {Object.keys(sheetsByProduct).length > 0 && (
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-6">
-                            <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white p-4">
-                                <h2 className="text-lg font-semibold flex items-center gap-2">
-                                    <Package size={20} />
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+                            <div className="bg-slate-50 border-b border-slate-200 p-4">
+                                <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                                    <Package size={20} className="text-blue-600" />
                                     Product-wise Summary
                                 </h2>
                             </div>
-                            <div className="p-4">
+                            <div className="p-5">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {Object.entries(sheetsByProduct).map(([productName, sheets]) => {
                                         const productTotal = sheets.reduce((sum, s) => sum + (s.total_cost || 0), 0)
                                         const avgCost = sheets.reduce((sum, s) => sum + (s.cost_per_unit || 0), 0) / sheets.length
 
                                         return (
-                                            <div key={productName} className="border border-gray-200 rounded-lg p-4 hover:border-teal-300 transition-colors">
-                                                <h3 className="font-medium text-gray-800 mb-2">{productName}</h3>
-                                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                            <div key={productName} className="border border-slate-200 rounded-xl p-5 hover:border-blue-200 hover:shadow-sm transition-all bg-white">
+                                                <h3 className="font-semibold text-slate-800 mb-3">{productName}</h3>
+                                                <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
                                                     <div>
-                                                        <span className="text-gray-500">Sheets:</span>
-                                                        <span className="ml-1 font-medium">{sheets.length}</span>
+                                                        <span className="text-slate-500 block text-xs uppercase tracking-wider mb-0.5">Sheets</span>
+                                                        <span className="font-medium text-slate-700">{sheets.length}</span>
                                                     </div>
                                                     <div>
-                                                        <span className="text-gray-500">Total:</span>
-                                                        <span className="ml-1 font-medium text-teal-600">{currency}{productTotal.toFixed(2)}</span>
+                                                        <span className="text-slate-500 block text-xs uppercase tracking-wider mb-0.5">Total Value</span>
+                                                        <span className="font-medium text-slate-700">{currency}{productTotal.toFixed(2)}</span>
                                                     </div>
-                                                    <div className="col-span-2">
-                                                        <span className="text-gray-500">Avg Cost/Unit:</span>
-                                                        <span className="ml-1 font-medium text-orange-600">{currency}{avgCost.toFixed(2)}</span>
+                                                    <div className="col-span-2 pt-2 border-t border-slate-100">
+                                                        <span className="text-slate-500 mr-2">Avg Cost/Unit:</span>
+                                                        <span className="font-semibold text-blue-600">{currency}{avgCost.toFixed(2)}</span>
                                                     </div>
                                                 </div>
                                             </div>
