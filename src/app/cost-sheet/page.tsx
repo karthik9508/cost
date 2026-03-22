@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     FileSpreadsheet,
@@ -13,9 +13,12 @@ import {
     ChevronRight,
     X,
     PlusCircle,
-    Download
+    Download,
+    Users,
+    DollarSign
 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
+import MaterialCostManager, { MaterialCostManagerRef } from '@/components/MaterialCostManager'
 import {
     getCostSheets,
     createCostSheet,
@@ -27,6 +30,7 @@ import {
 import { getProducts, Product } from '@/app/products/actions'
 import { getSettings, UserSettings } from '@/app/settings/actions'
 import { getUser } from '@/app/auth/actions'
+import { saveMaterials, saveScrapItems } from '@/app/materials/actions'
 
 const currencySymbols: { [key: string]: string } = {
     'INR': '₹',
@@ -42,6 +46,10 @@ interface LaborItem {
     description: string
     hours: string
     rate: string
+    gross_wages: string
+    payroll_taxes: string
+    benefits: string
+    other_expenses: string
     amount: number
 }
 
@@ -51,12 +59,6 @@ interface CostSheetFormData {
     date: string
     quantity_produced: string
     cost_unit: 'per_unit' | 'per_batch'
-    // Direct Materials - Material Consumed
-    opening_stock: string
-    purchases: string
-    carriage_inward: string
-    closing_stock: string
-    scrap: string
     // Labor
     labor: LaborItem[]
     // Overheads
@@ -72,8 +74,24 @@ const createLaborItem = (): LaborItem => ({
     description: '',
     hours: '0',
     rate: '0',
+    gross_wages: '0',
+    payroll_taxes: '0',
+    benefits: '0',
+    other_expenses: '0',
     amount: 0
 })
+
+const calcGrossWages = (item: LaborItem): number => {
+    return (parseFloat(item.hours) || 0) * (parseFloat(item.rate) || 0)
+}
+
+const calcLaborAmount = (item: LaborItem): number => {
+    const grossWages = calcGrossWages(item)
+    return grossWages +
+        (parseFloat(item.payroll_taxes) || 0) +
+        (parseFloat(item.benefits) || 0) +
+        (parseFloat(item.other_expenses) || 0)
+}
 
 const emptyForm: CostSheetFormData = {
     product_id: '',
@@ -81,12 +99,6 @@ const emptyForm: CostSheetFormData = {
     date: new Date().toISOString().split('T')[0],
     quantity_produced: '1',
     cost_unit: 'per_unit',
-    // Direct Materials
-    opening_stock: '0',
-    purchases: '0',
-    carriage_inward: '0',
-    closing_stock: '0',
-    scrap: '0',
     // Labor
     labor: [createLaborItem()],
     // Overheads
@@ -100,6 +112,7 @@ const emptyForm: CostSheetFormData = {
 export default function CostSheetPage() {
     const router = useRouter()
     const costSheetRef = useRef<HTMLFormElement>(null)
+    const materialCostRef = useRef<MaterialCostManagerRef>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [exporting, setExporting] = useState(false)
@@ -110,9 +123,17 @@ export default function CostSheetPage() {
     const [formData, setFormData] = useState<CostSheetFormData>(emptyForm)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [isEditing, setIsEditing] = useState(true)
+    const [totalMaterialCost, setTotalMaterialCost] = useState(0)
+    const [materialCostSheetId, setMaterialCostSheetId] = useState<string | null>(null)
+    const [showLaborBreakdown, setShowLaborBreakdown] = useState(false)
+    const [activeLaborId, setActiveLaborId] = useState<string | null>(null)
 
     const currency = currencySymbols[settings?.currency || 'INR'] || '₹'
     const currentSheet = currentSheetIndex >= 0 ? costSheets[currentSheetIndex] : null
+
+    const handleMaterialTotalChange = useCallback((total: number) => {
+        setTotalMaterialCost(total)
+    }, [])
 
     // PDF Export Handler - using print dialog
     const handleExportPDF = async () => {
@@ -122,14 +143,12 @@ export default function CostSheetPage() {
         const productName = selectedProduct?.name || 'Product'
         const productUnit = selectedProduct?.unit || 'units'
 
-        // Calculate all totals for the PDF
-        // Direct Material Consumed = Opening Stock + Purchases + Carriage Inward - Closing Stock - Scrap
-        const openingStockVal = parseFloat(formData.opening_stock) || 0
-        const purchasesVal = parseFloat(formData.purchases) || 0
-        const carriageInwardVal = parseFloat(formData.carriage_inward) || 0
-        const closingStockVal = parseFloat(formData.closing_stock) || 0
-        const scrapVal = parseFloat(formData.scrap) || 0
-        const matCost = openingStockVal + purchasesVal + carriageInwardVal - closingStockVal - scrapVal
+        // Get materials and scrap data from the component ref
+        const materialsData = materialCostRef.current?.getMaterialsData() || []
+        const scrapData = materialCostRef.current?.getScrapData() || []
+        const matCost = totalMaterialCost
+        const grossMatCost = materialsData.reduce((sum, m) => sum + m.amount, 0)
+        const scrapTotal = scrapData.reduce((sum, s) => sum + s.amount, 0)
 
         const labCost = formData.labor.reduce((sum, l) => sum + l.amount, 0)
         const primeCostVal = matCost + labCost
@@ -160,29 +179,34 @@ export default function CostSheetPage() {
             year: 'numeric', month: 'short', day: 'numeric'
         })
 
-        // Build materials rows - formula based
-        const materialsRows = `
+        // Build materials rows - from individual material line items with BOM info
+        const materialsRows = materialsData.map((m, i) => `
             <tr>
-                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px;">Opening Stock of Raw Materials</td>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${openingStockVal.toFixed(2)}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${i + 1}. ${m.name}${m.part_number ? ` <span style="color:#6b7280;font-size:10px;">(#${m.part_number})</span>` : ''}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 12px;">${m.quantity} ${m.unit}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${m.rate.toFixed(2)}/${m.unit}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; font-size: 12px;">${currency}${m.amount.toFixed(2)}</td>
             </tr>
-            <tr>
-                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px;">Add: Purchases</td>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${purchasesVal.toFixed(2)}</td>
+        `).join('')
+
+        // Build scrap rows
+        const scrapRows = scrapData.length > 0 ? `
+            <tr style="background:#fffbeb;">
+                <td colspan="4" style="padding:6px 10px;font-size:11px;font-weight:600;color:#92400e;border-bottom:1px solid #e5e7eb;">Less: Scrap / Wastage Value</td>
             </tr>
-            <tr>
-                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px;">Add: Carriage Inward</td>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${carriageInwardVal.toFixed(2)}</td>
+            ${scrapData.map((s, i) => `
+                <tr>
+                    <td style="padding:4px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;padding-left:24px;">${i + 1}. ${s.description}</td>
+                    <td style="padding:4px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:11px;">${s.quantity} ${s.unit}</td>
+                    <td style="padding:4px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;">${currency}${s.rate.toFixed(2)}/${s.unit}</td>
+                    <td style="padding:4px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;color:#92400e;">−${currency}${s.amount.toFixed(2)}</td>
+                </tr>
+            `).join('')}
+            <tr class="subtotal-row">
+                <td colspan="3" style="text-align:right;color:#92400e;">Total Scrap Deduction</td>
+                <td style="text-align:right;color:#92400e;">−${currency}${scrapTotal.toFixed(2)}</td>
             </tr>
-            <tr>
-                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px; color: #dc2626;">Less: Closing Stock</td>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px; color: #dc2626;">(${currency}${closingStockVal.toFixed(2)})</td>
-            </tr>
-            <tr>
-                <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; padding-left: 30px; color: #dc2626;">Less: Scrap</td>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px; color: #dc2626;">(${currency}${scrapVal.toFixed(2)})</td>
-            </tr>
-        `
+        ` : ''
 
         // Build labor rows - compact
         const laborRows = formData.labor.map((l, i) => `
@@ -377,11 +401,12 @@ export default function CostSheetPage() {
                         <tbody>
                             <!-- Materials -->
                             <tr class="section-row">
-                                <td colspan="4"><span class="badge">A</span>Direct Materials</td>
+                                <td colspan="4"><span class="badge">A</span>Direct Materials (BOM)</td>
                             </tr>
                             ${materialsRows}
+                            ${scrapRows}
                             <tr class="subtotal-row">
-                                <td colspan="3" style="text-align: right; color: #1e40af;">Total Materials</td>
+                                <td colspan="3" style="text-align: right; color: #1e40af;">${scrapTotal > 0 ? 'Net Direct Materials' : 'Total Materials'}</td>
                                 <td style="text-align: right; color: #1e40af;">${currency}${matCost.toFixed(2)}</td>
                             </tr>
                             
@@ -558,7 +583,7 @@ export default function CostSheetPage() {
             labor: formData.labor.map(l => {
                 if (l.id === id) {
                     const updated = { ...l, [field]: value }
-                    updated.amount = (parseFloat(updated.hours) || 0) * (parseFloat(updated.rate) || 0)
+                    updated.amount = calcLaborAmount(updated)
                     return updated
                 }
                 return l
@@ -566,15 +591,12 @@ export default function CostSheetPage() {
         })
     }
 
-    // Calculate totals
-    // Direct Material Consumed = Opening Stock + Purchases + Carriage Inward - Closing Stock - Scrap
-    const openingStock = parseFloat(formData.opening_stock) || 0
-    const purchases = parseFloat(formData.purchases) || 0
-    const carriageInward = parseFloat(formData.carriage_inward) || 0
-    const closingStock = parseFloat(formData.closing_stock) || 0
-    const scrap = parseFloat(formData.scrap) || 0
-    const totalMaterialCost = openingStock + purchases + carriageInward - closingStock - scrap
+    const openLaborBreakdown = (id: string) => {
+        setActiveLaborId(id)
+        setShowLaborBreakdown(true)
+    }
 
+    // Calculate totals (totalMaterialCost comes from MaterialCostManager via callback)
     const totalLaborCost = formData.labor.reduce((sum, l) => sum + l.amount, 0)
     const primeCost = totalMaterialCost + totalLaborCost
     const factoryOverhead = parseFloat(formData.factory_overhead) || 0
@@ -596,6 +618,7 @@ export default function CostSheetPage() {
         const nextNumber = await getNextSheetNumber()
         setFormData({ ...emptyForm, sheet_number: nextNumber })
         setCurrentSheetIndex(-1)
+        setMaterialCostSheetId(null)
         setIsEditing(true)
     }
 
@@ -618,19 +641,14 @@ export default function CostSheetPage() {
             date: sheet.date,
             quantity_produced: sheet.quantity_produced.toString(),
             cost_unit: sheet.cost_unit,
-            // Material consumed - load total material_cost into purchases as a reasonable default
-            opening_stock: '0',
-            purchases: sheet.material_cost.toString(),
-            carriage_inward: '0',
-            closing_stock: '0',
-            scrap: '0',
-            labor: [{ id: '1', description: 'Direct Labor', hours: sheet.labor_hours.toString(), rate: sheet.labor_rate.toString(), amount: sheet.labor_cost }],
+            labor: [{ id: '1', description: 'Direct Labor', hours: sheet.labor_hours.toString(), rate: sheet.labor_rate.toString(), gross_wages: sheet.labor_cost.toString(), payroll_taxes: '0', benefits: '0', other_expenses: '0', amount: sheet.labor_cost }],
             factory_overhead: sheet.overhead_cost.toString(),
             utilities: '0',
             depreciation: '0',
             other_costs: sheet.other_costs.toString(),
             notes: sheet.notes || ''
         })
+        setMaterialCostSheetId(sheet.id)
         setIsEditing(false)
     }
 
@@ -662,9 +680,21 @@ export default function CostSheetPage() {
         if (result.error) {
             setMessage({ type: 'error', text: result.error })
         } else {
-            setMessage({ type: 'success', text: result.success || 'Success!' })
+            // Save materials for this cost sheet
             const data = await getCostSheets()
             setCostSheets(data)
+
+            // Determine the cost sheet ID (for new sheets, it's the first in the list)
+            const savedSheetId = currentSheet ? currentSheet.id : data[0]?.id
+            if (savedSheetId && materialCostRef.current) {
+                const materialsData = materialCostRef.current.getMaterialsData()
+                const scrapData = materialCostRef.current.getScrapData()
+                await saveMaterials(savedSheetId, materialsData)
+                await saveScrapItems(savedSheetId, scrapData)
+                setMaterialCostSheetId(savedSheetId)
+            }
+
+            setMessage({ type: 'success', text: result.success || 'Success!' })
             if (!currentSheet) {
                 setCurrentSheetIndex(0)
             }
@@ -820,136 +850,14 @@ export default function CostSheetPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {/* DIRECT MATERIALS SECTION */}
-                                    <tr className="bg-gradient-to-r from-blue-50 to-blue-100">
-                                        <td colSpan={5} className="p-3 font-semibold text-blue-800 border-b border-blue-200">
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">A</span>
-                                                <span className="text-base">DIRECT MATERIALS CONSUMED</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {/* Materials Formula Sub-header */}
-                                    <tr className="bg-blue-50/50">
-                                        <td colSpan={4} className="p-2 text-xs font-medium text-blue-600 border-b border-r italic">
-                                            Formula: Opening Stock + Purchases + Carriage Inward - Closing Stock - Scrap
-                                        </td>
-                                        <td className="p-2 text-xs font-semibold text-blue-700 border-b text-right w-32">Amount</td>
-                                    </tr>
-                                    {/* Opening Stock */}
-                                    <tr className="border-b border-gray-200 hover:bg-blue-50/30">
-                                        <td colSpan={4} className="p-2 border-r">
-                                            <div className="flex items-center gap-2 pl-2">
-                                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">1</span>
-                                                <span className="font-medium text-gray-700">Opening Stock of Raw Materials</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={formData.opening_stock}
-                                                    onChange={(e) => setFormData({ ...formData, opening_stock: e.target.value })}
-                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                                                />
-                                            ) : <span className="font-medium">{currency}{parseFloat(formData.opening_stock).toFixed(2)}</span>}
-                                        </td>
-                                    </tr>
-                                    {/* Add: Purchases */}
-                                    <tr className="border-b border-gray-200 hover:bg-blue-50/30">
-                                        <td colSpan={4} className="p-2 border-r">
-                                            <div className="flex items-center gap-2 pl-2">
-                                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">+</span>
-                                                <span className="font-medium text-gray-700">Add: Purchases</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={formData.purchases}
-                                                    onChange={(e) => setFormData({ ...formData, purchases: e.target.value })}
-                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                                                />
-                                            ) : <span className="font-medium">{currency}{parseFloat(formData.purchases).toFixed(2)}</span>}
-                                        </td>
-                                    </tr>
-                                    {/* Add: Carriage Inward */}
-                                    <tr className="border-b border-gray-200 hover:bg-blue-50/30">
-                                        <td colSpan={4} className="p-2 border-r">
-                                            <div className="flex items-center gap-2 pl-2">
-                                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-medium">+</span>
-                                                <span className="font-medium text-gray-700">Add: Carriage Inward</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={formData.carriage_inward}
-                                                    onChange={(e) => setFormData({ ...formData, carriage_inward: e.target.value })}
-                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                                                />
-                                            ) : <span className="font-medium">{currency}{parseFloat(formData.carriage_inward).toFixed(2)}</span>}
-                                        </td>
-                                    </tr>
-                                    {/* Less: Closing Stock */}
-                                    <tr className="border-b border-gray-200 hover:bg-red-50/30">
-                                        <td colSpan={4} className="p-2 border-r">
-                                            <div className="flex items-center gap-2 pl-2">
-                                                <span className="w-6 h-6 bg-red-100 text-red-600 rounded flex items-center justify-center text-xs font-medium">−</span>
-                                                <span className="font-medium text-gray-700">Less: Closing Stock</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={formData.closing_stock}
-                                                    onChange={(e) => setFormData({ ...formData, closing_stock: e.target.value })}
-                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-red-400 focus:ring-1 focus:ring-red-400 outline-none"
-                                                />
-                                            ) : <span className="font-medium text-red-600">({currency}{parseFloat(formData.closing_stock).toFixed(2)})</span>}
-                                        </td>
-                                    </tr>
-                                    {/* Less: Scrap */}
-                                    <tr className="border-b border-gray-200 hover:bg-red-50/30">
-                                        <td colSpan={4} className="p-2 border-r">
-                                            <div className="flex items-center gap-2 pl-2">
-                                                <span className="w-6 h-6 bg-red-100 text-red-600 rounded flex items-center justify-center text-xs font-medium">−</span>
-                                                <span className="font-medium text-gray-700">Less: Scrap Value</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {isEditing ? (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={formData.scrap}
-                                                    onChange={(e) => setFormData({ ...formData, scrap: e.target.value })}
-                                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:border-red-400 focus:ring-1 focus:ring-red-400 outline-none"
-                                                />
-                                            ) : <span className="font-medium text-red-600">({currency}{parseFloat(formData.scrap).toFixed(2)})</span>}
-                                        </td>
-                                    </tr>
-                                    {/* Total Direct Materials Consumed */}
-                                    <tr className="bg-gradient-to-r from-blue-100 to-blue-200">
-                                        <td colSpan={4} className="p-3 text-right font-semibold text-blue-800 border-b border-r">
-                                            <span className="flex items-center justify-end gap-2">
-                                                Direct Materials Consumed
-                                            </span>
-                                        </td>
-                                        <td className="p-3 text-right font-bold text-blue-900 border-b text-lg">{currency}{totalMaterialCost.toFixed(2)}</td>
-                                    </tr>
+                                    {/* DIRECT MATERIALS SECTION — managed by MaterialCostManager */}
+                                    <MaterialCostManager
+                                        ref={materialCostRef}
+                                        costSheetId={materialCostSheetId}
+                                        currency={currency}
+                                        isEditing={isEditing}
+                                        onTotalChange={handleMaterialTotalChange}
+                                    />
 
                                     {/* DIRECT LABOR SECTION */}
                                     <tr className="bg-gradient-to-r from-green-50 to-green-100">
@@ -968,17 +876,16 @@ export default function CostSheetPage() {
                                             </div>
                                         </td>
                                     </tr>
-                                    {/* Labor Table Header */}
+                                    {/* Labor Column Headers */}
                                     <tr className="bg-green-50/50">
-                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r w-2/5">Description</td>
-                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r text-center w-20">Hrs</td>
-                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r text-center w-20">Wages</td>
-                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r text-right w-28">Rate/Hr</td>
-                                        <td className="p-2 text-xs font-semibold text-green-700 border-b text-right w-32">Amount</td>
+                                        <td colSpan={3} className="p-2 text-xs font-semibold text-green-700 border-b border-r">Description</td>
+                                        <td className="p-2 text-xs font-semibold text-green-700 border-b border-r text-center">Labour Cost</td>
+                                        <td className="p-2 text-xs font-semibold text-green-700 border-b text-right w-32">Total ({currency})</td>
                                     </tr>
                                     {formData.labor.map((labor, index) => (
                                         <tr key={labor.id} className="border-b border-gray-200 hover:bg-green-50/30 transition-colors group">
-                                            <td className="p-2 border-r">
+                                            {/* Description */}
+                                            <td colSpan={3} className="p-2 border-r">
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2">
                                                         <span className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
@@ -987,7 +894,7 @@ export default function CostSheetPage() {
                                                             placeholder="Labor description..."
                                                             value={labor.description}
                                                             onChange={(e) => updateLaborItem(labor.id, 'description', e.target.value)}
-                                                            className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none transition-all"
+                                                            className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none transition-all text-sm"
                                                         />
                                                         {formData.labor.length > 1 && (
                                                             <button type="button" onClick={() => removeLaborItem(labor.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-all">
@@ -998,45 +905,177 @@ export default function CostSheetPage() {
                                                 ) : (
                                                     <div className="flex items-center gap-2 pl-2">
                                                         <span className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center text-xs font-medium">{index + 1}</span>
+                                                        <Users size={14} className="text-green-400" />
                                                         <span className="font-medium text-gray-700">{labor.description || `Labor ${index + 1}`}</span>
                                                     </div>
                                                 )}
                                             </td>
+                                            {/* Manage Labour Cost Button */}
                                             <td className="p-2 border-r text-center">
-                                                {isEditing ? (
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.5"
-                                                        value={labor.hours}
-                                                        onChange={(e) => updateLaborItem(labor.id, 'hours', e.target.value)}
-                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-center focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none"
-                                                        placeholder="Hrs"
-                                                    />
-                                                ) : <span className="font-medium">{labor.hours}</span>}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openLaborBreakdown(labor.id)}
+                                                    className="inline-flex items-center gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium shadow-sm"
+                                                >
+                                                    <DollarSign size={14} />
+                                                    Manage Labour Cost
+                                                </button>
                                             </td>
-                                            <td className="p-2 border-r text-center">
-                                                <span className="text-gray-500 text-sm">{currency}{(parseFloat(labor.hours) * parseFloat(labor.rate) || 0).toFixed(2)}</span>
-                                            </td>
-                                            <td className="p-2 border-r text-right">
-                                                {isEditing ? (
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        value={labor.rate}
-                                                        onChange={(e) => updateLaborItem(labor.id, 'rate', e.target.value)}
-                                                        className="w-full px-1 py-1.5 border border-gray-200 rounded-lg text-right focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none"
-                                                    />
-                                                ) : <span>{currency}{parseFloat(labor.rate).toFixed(2)}/hr</span>}
-                                            </td>
+                                            {/* Total Amount */}
                                             <td className="p-2 text-right">
                                                 <span className="font-semibold text-gray-800">{currency}{labor.amount.toFixed(2)}</span>
                                             </td>
                                         </tr>
                                     ))}
+
+                                    {/* Labor Cost Breakdown Popup Modal */}
+                                    {showLaborBreakdown && activeLaborId && (() => {
+                                        const labor = formData.labor.find(l => l.id === activeLaborId)
+                                        if (!labor) return null
+                                        return (
+                                            <tr>
+                                                <td colSpan={5} className="p-0">
+                                                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowLaborBreakdown(false) }}>
+                                                        <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+                                                            {/* Modal Header */}
+                                                            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-5 rounded-t-2xl flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                                                        <DollarSign size={22} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <h2 className="text-lg font-bold">Labor Cost Breakdown</h2>
+                                                                        <p className="text-green-100 text-xs">{labor.description || 'Direct Labor'}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <button type="button" onClick={() => setShowLaborBreakdown(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                                                                    <X size={20} />
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Modal Body */}
+                                                            <div className="p-5 space-y-4">
+                                                                {/* Gross Wages = Hours/Pieces × Rate */}
+                                                                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                                                                    <label className="block text-xs font-semibold text-green-700 mb-2">💰 Gross Wages</label>
+                                                                    <p className="text-[10px] text-gray-400 mb-2">Hours/Pieces × Rate per unit</p>
+                                                                    {isEditing ? (
+                                                                        <div className="grid grid-cols-3 gap-3 mt-2">
+                                                                            <div>
+                                                                                <label className="block text-[10px] text-green-600 font-medium mb-1">Hours / Pieces</label>
+                                                                                <input
+                                                                                    type="number" min="0" step="0.5"
+                                                                                    value={labor.hours}
+                                                                                    onChange={(e) => updateLaborItem(labor.id, 'hours', e.target.value)}
+                                                                                    className="w-full px-3 py-2 border border-green-200 rounded-lg text-center bg-white focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none text-sm"
+                                                                                    placeholder="0"
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="block text-[10px] text-green-600 font-medium mb-1">Rate ({currency})</label>
+                                                                                <input
+                                                                                    type="number" min="0" step="0.01"
+                                                                                    value={labor.rate}
+                                                                                    onChange={(e) => updateLaborItem(labor.id, 'rate', e.target.value)}
+                                                                                    className="w-full px-3 py-2 border border-green-200 rounded-lg text-right bg-white focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none text-sm"
+                                                                                    placeholder="0"
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="block text-[10px] text-green-600 font-medium mb-1">Gross Wages</label>
+                                                                                <div className="px-3 py-2 bg-green-100 rounded-lg text-right">
+                                                                                    <span className="text-sm font-bold text-green-800">{currency}{calcGrossWages(labor).toFixed(2)}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-xs text-gray-500">{labor.hours} hrs/pcs × {currency}{parseFloat(labor.rate).toFixed(2)}</span>
+                                                                            <span className="font-medium text-gray-800">{currency}{calcGrossWages(labor).toFixed(2)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Payroll Taxes */}
+                                                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                                                    <label className="block text-xs font-semibold text-blue-700 mb-2">🏛️ Payroll Taxes</label>
+                                                                    <p className="text-[10px] text-gray-400 mb-2">PF, ESI, professional tax, social security contributions</p>
+                                                                    {isEditing ? (
+                                                                        <input
+                                                                            type="number" min="0" step="0.01"
+                                                                            value={labor.payroll_taxes}
+                                                                            onChange={(e) => updateLaborItem(labor.id, 'payroll_taxes', e.target.value)}
+                                                                            className="w-full px-3 py-2.5 border border-blue-200 rounded-lg text-right bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none text-sm font-medium"
+                                                                            placeholder="0.00"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="text-right font-medium text-gray-800">{currency}{parseFloat(labor.payroll_taxes).toFixed(2)}</div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Benefits */}
+                                                                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                                                                    <label className="block text-xs font-semibold text-purple-700 mb-2">🎁 Benefits</label>
+                                                                    <p className="text-[10px] text-gray-400 mb-2">Health insurance, gratuity, leave encashment, retirement</p>
+                                                                    {isEditing ? (
+                                                                        <input
+                                                                            type="number" min="0" step="0.01"
+                                                                            value={labor.benefits}
+                                                                            onChange={(e) => updateLaborItem(labor.id, 'benefits', e.target.value)}
+                                                                            className="w-full px-3 py-2.5 border border-purple-200 rounded-lg text-right bg-white focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none text-sm font-medium"
+                                                                            placeholder="0.00"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="text-right font-medium text-gray-800">{currency}{parseFloat(labor.benefits).toFixed(2)}</div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Other Related Expenses */}
+                                                                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                                                                    <label className="block text-xs font-semibold text-orange-700 mb-2">📋 Other Related Expenses</label>
+                                                                    <p className="text-[10px] text-gray-400 mb-2">Training, uniforms, safety gear, meals, transport allowance</p>
+                                                                    {isEditing ? (
+                                                                        <input
+                                                                            type="number" min="0" step="0.01"
+                                                                            value={labor.other_expenses}
+                                                                            onChange={(e) => updateLaborItem(labor.id, 'other_expenses', e.target.value)}
+                                                                            className="w-full px-3 py-2.5 border border-orange-200 rounded-lg text-right bg-white focus:border-orange-400 focus:ring-1 focus:ring-orange-400 outline-none text-sm font-medium"
+                                                                            placeholder="0.00"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="text-right font-medium text-gray-800">{currency}{parseFloat(labor.other_expenses).toFixed(2)}</div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Modal Footer — Total */}
+                                                            <div className="border-t border-gray-200 p-5 bg-gray-50 rounded-b-2xl">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="text-sm text-gray-500">
+                                                                        Total Labor Cost
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4">
+                                                                        <span className="text-xl font-bold text-green-700">
+                                                                            {currency}{labor.amount.toFixed(2)}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setShowLaborBreakdown(false)}
+                                                                            className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+                                                                        >
+                                                                            Done
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })()}
                                     <tr className="bg-green-100">
-                                        <td colSpan={3} className="p-2 text-right font-semibold text-green-800 border-b border-r">Total Direct Labor</td>
+                                        <td colSpan={4} className="p-2 text-right font-semibold text-green-800 border-b border-r">Total Direct Labor</td>
                                         <td className="p-2 text-right font-bold text-green-800 border-b">{currency}{totalLaborCost.toFixed(2)}</td>
                                     </tr>
 
