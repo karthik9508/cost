@@ -154,7 +154,7 @@ export default function ReportsPage() {
                                 <div className="text-xl font-bold text-blue-800">{currency}{totalMaterials.toLocaleString()}</div>
                             </div>
                             <div className="bg-green-50 rounded-lg p-4 text-center">
-                                <div className="text-sm text-green-600 mb-1">Labor</div>
+                                <div className="text-sm text-green-600 mb-1">Labour</div>
                                 <div className="text-xl font-bold text-green-800">{currency}{totalLabor.toLocaleString()}</div>
                             </div>
                             <div className="bg-purple-50 rounded-lg p-4 text-center">
@@ -199,7 +199,7 @@ export default function ReportsPage() {
                                             <th className="p-3 text-left font-semibold text-gray-700">Date</th>
                                             <th className="p-3 text-right font-semibold text-gray-700">Qty</th>
                                             <th className="p-3 text-right font-semibold text-gray-700">Materials</th>
-                                            <th className="p-3 text-right font-semibold text-gray-700">Labor</th>
+                                            <th className="p-3 text-right font-semibold text-gray-700">Labour</th>
                                             <th className="p-3 text-right font-semibold text-gray-700">Overhead</th>
                                             <th className="p-3 text-right font-semibold text-gray-700">Total Cost</th>
                                             <th className="p-3 text-right font-semibold text-gray-700">Cost/Unit</th>

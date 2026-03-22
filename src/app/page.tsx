@@ -209,7 +209,7 @@ export default async function Home() {
               {
                 icon: FileSpreadsheet,
                 title: "Online Cost Sheet",
-                desc: "Create dynamic online cost sheets with drag-and-drop ease. Track materials, labor, and overheads in real-time.",
+                desc: "Create dynamic online cost sheets with drag-and-drop ease. Track materials, labour, and overheads in real-time.",
               },
               {
                 icon: DollarSign,
@@ -315,7 +315,7 @@ export default async function Home() {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-3">Real-Time Insights</h3>
                 <p className="text-slate-500 leading-relaxed mb-4">
-                  Get instant visibility into your cost structure with live dashboards. Track materials, labor, and overheads as they change — no more outdated spreadsheets.
+                  Get instant visibility into your cost structure with live dashboards. Track materials, labour, and overheads as they change — no more outdated spreadsheets.
                 </p>
                 <div className="flex items-center text-blue-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">
                   <span>Stay informed</span>

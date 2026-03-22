@@ -253,7 +253,7 @@ export default function BreakEvenPage() {
                                         <span className="font-medium">{currency}{materialCost.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Direct Labor:</span>
+                                        <span className="text-gray-600">Direct Labour:</span>
                                         <span className="font-medium">{currency}{laborCost.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">

@@ -200,7 +200,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="bg-slate-50 rounded-lg p-3">
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs text-slate-600">Labor</span>
+                                    <span className="text-xs text-slate-600">Labour</span>
                                     <span className="text-xs text-slate-400">{grandTotal > 0 ? Math.round((totalLabor / grandTotal) * 100) : 0}%</span>
                                 </div>
                                 <p className="text-sm font-bold text-slate-800">{currency}{totalLabor.toLocaleString()}</p>

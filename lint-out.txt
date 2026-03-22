@@ -1,0 +1,12 @@
+﻿
+D:\Cost\cost-app\src\app\what-if\page.tsx
+    7:5   warning  'ArrowLeft' is defined but never used            @typescript-eslint/no-unused-vars
+    9:5   warning  'TrendingDown' is defined but never used         @typescript-eslint/no-unused-vars
+   10:5   warning  'TrendingUp' is defined but never used           @typescript-eslint/no-unused-vars
+   20:25  warning  'CostSheet' is defined but never used            @typescript-eslint/no-unused-vars
+  173:13  error    'valA' is never reassigned. Use 'const' instead  prefer-const
+  174:13  error    'valB' is never reassigned. Use 'const' instead  prefer-const
+
+Γ£û 6 problems (2 errors, 4 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.
+

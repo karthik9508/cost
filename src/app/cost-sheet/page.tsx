@@ -232,7 +232,7 @@ export default function CostSheetPage() {
         // Build labor rows - compact
         const laborRows = formData.labor.map((l, i) => `
             <tr>
-                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${i + 1}. ${l.description || 'Labor'}</td>
+                <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px;">${i + 1}. ${l.description || 'Labour'}</td>
                 <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 12px;">${l.hours} hrs</td>
                 <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px;">${currency}${parseFloat(l.rate).toFixed(2)}/hr</td>
                 <td style="padding: 6px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; font-size: 12px;">${currency}${l.amount.toFixed(2)}</td>
@@ -433,11 +433,11 @@ export default function CostSheetPage() {
                             
                             <!-- Labor -->
                             <tr class="section-row labor">
-                                <td colspan="4"><span class="badge">B</span>Direct Labor</td>
+                                <td colspan="4"><span class="badge">B</span>Direct Labour</td>
                             </tr>
                             ${laborRows}
                             <tr class="subtotal-row">
-                                <td colspan="3" style="text-align: right; color: #166534;">Total Labor</td>
+                                <td colspan="3" style="text-align: right; color: #166534;">Total Labour</td>
                                 <td style="text-align: right; color: #166534;">${currency}${labCost.toFixed(2)}</td>
                             </tr>
                             
@@ -463,7 +463,7 @@ export default function CostSheetPage() {
                             </tr>`).join('')}` : ''}
                             ${formData.indirect_labor.length > 0 ? `
                             <tr>
-                                <td colspan="3" style="padding: 6px 10px; font-size: 11px; font-weight: 600; color: #6b21a8; padding-left: 30px; border-bottom: 1px solid #e5e7eb;">Indirect Labor</td>
+                                <td colspan="3" style="padding: 6px 10px; font-size: 11px; font-weight: 600; color: #6b21a8; padding-left: 30px; border-bottom: 1px solid #e5e7eb;">Indirect Labour</td>
                                 <td style="padding: 6px 10px; text-align: right; font-size: 12px; font-weight: 600; border-bottom: 1px solid #e5e7eb;">${currency}${totalIndirectLabor.toFixed(2)}</td>
                             </tr>
                             ${formData.indirect_labor.map(i => `
@@ -543,7 +543,7 @@ export default function CostSheetPage() {
                                     <span><span class="value">${currency}${matCost.toFixed(2)}</span><span class="percent">(${matPercent}%)</span></span>
                                 </div>
                                 <div class="breakdown-row">
-                                    <span class="label">Direct Labor</span>
+                                    <span class="label">Direct Labour</span>
                                     <span><span class="value">${currency}${labCost.toFixed(2)}</span><span class="percent">(${labPercent}%)</span></span>
                                 </div>
                                 <div class="breakdown-row">
@@ -724,7 +724,7 @@ export default function CostSheetPage() {
             date: sheet.date,
             quantity_produced: sheet.quantity_produced.toString(),
             cost_unit: sheet.cost_unit,
-            labor: [{ id: '1', description: 'Direct Labor', hours: sheet.labor_hours.toString(), rate: sheet.labor_rate.toString(), gross_wages: sheet.labor_cost.toString(), payroll_taxes: '0', benefits: '0', other_expenses: '0', amount: sheet.labor_cost }],
+            labor: [{ id: '1', description: 'Direct Labour', hours: sheet.labor_hours.toString(), rate: sheet.labor_rate.toString(), gross_wages: sheet.labor_cost.toString(), payroll_taxes: '0', benefits: '0', other_expenses: '0', amount: sheet.labor_cost }],
             indirect_materials: sheet.overhead_cost > 0 ? [{ id: '1', description: 'Factory Overhead', amount: sheet.overhead_cost.toString() }] : [],
             indirect_labor: [],
             other_indirect: [],
@@ -950,12 +950,12 @@ export default function CostSheetPage() {
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <span className="w-7 h-7 bg-slate-700 text-white rounded flex items-center justify-center text-xs font-bold">B</span>
-                                                    <span className="text-sm font-bold tracking-wide uppercase">Direct Labor</span>
+                                                    <span className="text-sm font-bold tracking-wide uppercase">Direct Labour</span>
                                                     <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{formData.labor.length} item{formData.labor.length > 1 ? 's' : ''}</span>
                                                 </div>
                                                 {isEditing && (
                                                     <button type="button" onClick={addLaborItem} className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors">
-                                                        <PlusCircle size={14} /> Add Labor
+                                                        <PlusCircle size={14} /> Add Labour
                                                     </button>
                                                 )}
                                             </div>
@@ -976,7 +976,7 @@ export default function CostSheetPage() {
                                                         <span className="w-5 h-5 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] font-bold">{index + 1}</span>
                                                         <input
                                                             type="text"
-                                                            placeholder="Labor description..."
+                                                            placeholder="Labour description..."
                                                             value={labor.description}
                                                             onChange={(e) => updateLaborItem(labor.id, 'description', e.target.value)}
                                                             className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-sm"
@@ -991,7 +991,7 @@ export default function CostSheetPage() {
                                                     <div className="flex items-center gap-2 pl-2">
                                                         <span className="w-5 h-5 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] font-bold">{index + 1}</span>
                                                         <Users size={14} className="text-slate-400" />
-                                                        <span className="font-medium text-gray-700">{labor.description || `Labor ${index + 1}`}</span>
+                                                        <span className="font-medium text-gray-700">{labor.description || `Labour ${index + 1}`}</span>
                                                     </div>
                                                 )}
                                             </td>
@@ -1029,8 +1029,8 @@ export default function CostSheetPage() {
                                                                         <DollarSign size={22} />
                                                                     </div>
                                                                     <div>
-                                                                        <h2 className="text-lg font-bold">Labor Cost Breakdown</h2>
-                                                                        <p className="text-slate-300 text-xs">{labor.description || 'Direct Labor'}</p>
+                                                                        <h2 className="text-lg font-bold">Labour Cost Breakdown</h2>
+                                                                        <p className="text-slate-300 text-xs">{labor.description || 'Direct Labour'}</p>
                                                                     </div>
                                                                 </div>
                                                                 <button type="button" onClick={() => setShowLaborBreakdown(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
@@ -1137,7 +1137,7 @@ export default function CostSheetPage() {
                                                             <div className="border-t border-gray-200 p-5 bg-gray-50 rounded-b-2xl">
                                                                 <div className="flex items-center justify-between">
                                                                     <div className="text-sm text-gray-500">
-                                                                        Total Labor Cost
+                                                                        Total Labour Cost
                                                                     </div>
                                                                     <div className="flex items-center gap-4">
                                                                         <span className="text-xl font-bold text-slate-800">
@@ -1160,7 +1160,7 @@ export default function CostSheetPage() {
                                         )
                                     })()}
                                     <tr className="bg-slate-100">
-                                        <td colSpan={4} className="p-2.5 text-right font-semibold text-slate-700 border-b border-r">Total Direct Labor (B)</td>
+                                        <td colSpan={4} className="p-2.5 text-right font-semibold text-slate-700 border-b border-r">Total Direct Labour (B)</td>
                                         <td className="p-2.5 text-right font-bold text-slate-900 border-b text-base">{currency}{totalLaborCost.toFixed(2)}</td>
                                     </tr>
 
@@ -1203,7 +1203,7 @@ export default function CostSheetPage() {
                                     {showOverheadModal && (() => {
                                         const allGroups: { key: 'indirect_materials' | 'indirect_labor' | 'other_indirect'; title: string; icon: string; examples: string; color: string }[] = [
                                             { key: 'indirect_materials', title: 'Indirect Materials', icon: '📦', examples: 'e.g., Lubricants, Cleaning supplies, Gloves, Small tools', color: 'purple' },
-                                            { key: 'indirect_labor', title: 'Indirect Labor', icon: '👷', examples: 'e.g., Supervisor salary, Security, Maintenance staff', color: 'violet' },
+                                            { key: 'indirect_labor', title: 'Indirect Labour', icon: '👷', examples: 'e.g., Supervisor salary, Security, Maintenance staff', color: 'violet' },
                                             { key: 'other_indirect', title: 'Other Indirect Factory Costs', icon: '🏭', examples: 'e.g., Rent, Utilities, Depreciation, Insurance, Repairs', color: 'fuchsia' }
                                         ]
                                         return (
