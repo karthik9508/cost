@@ -1,93 +1,23 @@
 import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, Clock, ArrowRight, ArrowLeft, Search, Tag } from "lucide-react";
-
-// Sample blog posts data - costing and management accounting topics
-const blogPosts = [
-    {
-        id: 1,
-        slug: "understanding-cost-sheet-fundamentals",
-        title: "Understanding Cost Sheet Fundamentals: A Complete Guide",
-        excerpt: "Learn the essential components of a cost sheet, including prime cost, factory cost, and total cost. Master the art of calculating product costs accurately.",
-        category: "Cost Accounting",
-        author: "Cost Analyst Team",
-        date: "Feb 5, 2026",
-        readTime: "8 min read",
-        image: "/blog/cost-sheet-guide.jpg",
-        featured: true,
-    },
-    {
-        id: 2,
-        slug: "break-even-analysis-for-business-decisions",
-        title: "Break-Even Analysis: Making Smarter Business Decisions",
-        excerpt: "Discover how break-even analysis helps you determine the minimum sales volume needed to cover costs and start generating profits.",
-        category: "Management Accounting",
-        author: "Cost Analyst Team",
-        date: "Feb 3, 2026",
-        readTime: "6 min read",
-        image: "/blog/break-even-analysis.jpg",
-        featured: true,
-    },
-    {
-        id: 3,
-        slug: "pricing-strategies-for-maximum-profit",
-        title: "5 Pricing Strategies to Maximize Your Profit Margins",
-        excerpt: "Explore cost-plus pricing, target profit pricing, and market-based pricing strategies to find the perfect price for your products.",
-        category: "Pricing Strategy",
-        author: "Cost Analyst Team",
-        date: "Feb 1, 2026",
-        readTime: "7 min read",
-        image: "/blog/pricing-strategies.jpg",
-        featured: true,
-    },
-    {
-        id: 4,
-        slug: "overhead-cost-allocation-methods",
-        title: "Overhead Cost Allocation: Methods and Best Practices",
-        excerpt: "Understand different methods of allocating factory and office overheads to products for accurate cost determination.",
-        category: "Cost Accounting",
-        author: "Cost Analyst Team",
-        date: "Jan 28, 2026",
-        readTime: "10 min read",
-        image: "/blog/overhead-allocation.jpg",
-        featured: false,
-    },
-    {
-        id: 5,
-        slug: "marginal-costing-vs-absorption-costing",
-        title: "Marginal Costing vs Absorption Costing: Which to Choose?",
-        excerpt: "Compare marginal and absorption costing methods, their advantages, and when to use each for better decision-making.",
-        category: "Management Accounting",
-        author: "Cost Analyst Team",
-        date: "Jan 25, 2026",
-        readTime: "9 min read",
-        image: "/blog/costing-methods.jpg",
-        featured: false,
-    },
-    {
-        id: 6,
-        slug: "variance-analysis-in-standard-costing",
-        title: "Mastering Variance Analysis in Standard Costing",
-        excerpt: "Learn how to calculate and interpret material, labor, and overhead variances to control costs and improve efficiency.",
-        category: "Cost Accounting",
-        author: "Cost Analyst Team",
-        date: "Jan 22, 2026",
-        readTime: "11 min read",
-        image: "/blog/variance-analysis.jpg",
-        featured: false,
-    },
-];
-
-const categories = [
-    { name: "All Posts", count: blogPosts.length },
-    { name: "Cost Accounting", count: 3 },
-    { name: "Management Accounting", count: 2 },
-    { name: "Pricing Strategy", count: 1 },
-];
+import { getPosts } from "@/lib/blog";
 
 export default function BlogPage() {
+    const blogPosts = getPosts();
     const featuredPosts = blogPosts.filter((post) => post.featured);
     const regularPosts = blogPosts.filter((post) => !post.featured);
+
+    // Compute categories dynamically based on actual markdown files
+    const categoryCounts: Record<string, number> = {};
+    blogPosts.forEach(post => {
+        categoryCounts[post.category] = (categoryCounts[post.category] || 0) + 1;
+    });
+    
+    const categories = [
+        { name: "All Posts", count: blogPosts.length },
+        ...Object.entries(categoryCounts).map(([name, count]) => ({ name, count }))
+    ];
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -201,7 +131,7 @@ export default function BlogPage() {
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {featuredPosts.map((post) => (
                             <article
-                                key={post.id}
+                                key={post.slug}
                                 className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300"
                             >
                                 {/* Image Placeholder */}
@@ -257,7 +187,7 @@ export default function BlogPage() {
                     <div className="grid md:grid-cols-2 gap-8">
                         {blogPosts.map((post) => (
                             <article
-                                key={post.id}
+                                key={post.slug}
                                 className="group flex gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-white hover:shadow-lg transition-all duration-300"
                             >
                                 {/* Image Placeholder */}
