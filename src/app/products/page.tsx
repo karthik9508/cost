@@ -48,6 +48,7 @@ const emptyForm: ProductFormData = {
     description: ''
 }
 
+
 export default function ProductsPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)

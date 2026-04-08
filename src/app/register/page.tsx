@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react'
 
+
 export default function RegisterPage() {
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)

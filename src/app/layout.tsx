@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.costanalyst.cloud"),
   title: "Cost Analyst | Online Cost Sheet & Product Margin Calculator",
   description: "Master cost accounting and pricing strategies with our free online cost sheet. Calculate product margins, analyze break-even points, and optimize costing strategies.",
 };

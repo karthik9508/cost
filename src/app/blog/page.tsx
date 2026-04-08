@@ -3,6 +3,14 @@ import Image from "next/image";
 import { BookOpen, Clock, ArrowRight, ArrowLeft, Search, Tag } from "lucide-react";
 import { getPosts } from "@/lib/blog";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/blog",
+  },
+};
+
 export default function BlogPage() {
     const blogPosts = getPosts();
     const featuredPosts = blogPosts.filter((post) => post.featured);

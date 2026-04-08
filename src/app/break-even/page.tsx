@@ -33,6 +33,7 @@ interface ProfitScenario {
     totalProfit: number
 }
 
+
 export default function BreakEvenPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)

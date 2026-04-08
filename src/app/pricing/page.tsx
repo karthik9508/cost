@@ -30,6 +30,7 @@ const currencySymbols: { [key: string]: string } = {
 
 type PricingMethod = 'cost_plus' | 'desired_profit' | 'market_basis'
 
+
 export default function PricingPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)

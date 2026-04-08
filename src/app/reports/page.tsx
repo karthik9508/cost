@@ -29,6 +29,7 @@ const currencySymbols: { [key: string]: string } = {
     'SAR': '﷼'
 }
 
+
 export default function ReportsPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)

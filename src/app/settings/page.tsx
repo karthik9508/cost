@@ -16,6 +16,7 @@ const currencies = [
     { code: 'SAR', name: 'Saudi Riyal (﷼)', symbol: '﷼' },
 ]
 
+
 export default function SettingsPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)

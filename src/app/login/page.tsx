@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
+
 export default function LoginPage() {
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)

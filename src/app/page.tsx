@@ -21,6 +21,14 @@ import {
   ArrowUpRight
 } from "lucide-react";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+  },
+};
+
 export default async function Home() {
   const user = await getUser();
 

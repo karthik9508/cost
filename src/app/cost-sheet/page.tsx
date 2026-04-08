@@ -131,6 +131,7 @@ const emptyForm: CostSheetFormData = {
     notes: ''
 }
 
+
 export default function CostSheetPage() {
     const router = useRouter()
     const costSheetRef = useRef<HTMLFormElement>(null)

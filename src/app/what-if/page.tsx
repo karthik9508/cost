@@ -42,6 +42,7 @@ interface CostAnalysisItem {
 type SortField = 'product_name' | 'material_pct' | 'labor_pct' | 'overhead_pct' | 'asd_pct' | 'total_cost';
 type SortOrder = 'asc' | 'desc';
 
+
 export default function WhatIfPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)

@@ -4,6 +4,16 @@ import { ArrowLeft, Clock, Calendar, User, Tag } from "lucide-react";
 import { getPostBySlug } from "@/lib/blog";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import type { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  return {
+    alternates: {
+      canonical: `/blog/${slug}`,
+    },
+  };
+}
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
